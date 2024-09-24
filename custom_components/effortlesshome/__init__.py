@@ -35,7 +35,6 @@ from .panel import (
 )
 from .card import async_register_card
 from .websockets import async_register_websockets
-from .entity import async_setup_entities
 from .theme import effortlesshomeTheme
 from .deviceclassgroupsync import async_setup_devicegroup
 
@@ -68,6 +67,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.helpers.discovery import async_load_platform
 
+
 from .const import CONF_USERNAME
 from .const import CONF_SYSTEMID
 from .const import DOMAIN
@@ -77,8 +77,11 @@ from .const import EH_SECURITY_API
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
-from .sensor import ehsensor
+
 from .binary_sensor import binarymedalertsensor
+from .binary_sensor import sleepingsensor
+from .binary_sensor import someonehomesensor
+from .binary_sensor import renteroccupiedsensor
 
 import os
 import yaml
@@ -105,7 +108,7 @@ async def async_setup(hass, config):
 
     _LOGGER.info("Setting up effortlesshome binary sensors integration")
 
-    await hass.helpers.discovery.async_load_platform('sensor', const.DOMAIN , {}, config)
+    #await hass.helpers.discovery.async_load_platform('sensor', const.DOMAIN , {}, config)
     await hass.helpers.discovery.async_load_platform('binary_sensor', const.DOMAIN , {}, config) 
 
     return True
@@ -149,7 +152,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     await async_register_card(hass)
 
     #eh custom
-    await async_setup_entities(hass, entry)
+    #await async_setup_entities(hass, entry)
     await async_setup_devicegroup(hass, entry)
     await getPlanStatus(None)
 
@@ -162,6 +165,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     # Register custom services
     register_services(hass)
     register_security_services(hass)
+
+    hass.data[DOMAIN]["MedicalAlertTriggered"] = "Off"
+    hass.data[DOMAIN]["GoodnightRanForDay"] = "Off"
+    hass.data[DOMAIN]["IsRenterOccupied"] = "Off"
 
     return True
 
@@ -613,14 +620,24 @@ def register_security_services(hass):
     async def changemedicalalertstateservice(call: ServiceCall):
         await changemedicalalertstate(call)        
 
+    @callback
+    async def changegoodnightranfordaystateservice(call: ServiceCall):
+        await changegoodnightranfordaystate(call)     
+
+    @callback
+    async def changerenteroccupiedstateservice(call: ServiceCall):
+        await changerenteroccupiedstate(call)            
+
     # Register our service with Home Assistant.
     hass.services.async_register(DOMAIN, "createeventservice", createevent)
     hass.services.async_register(DOMAIN, "cancelalarmservice", cancelalarm)
     hass.services.async_register(DOMAIN, "getalarmstatusservice", getalarmstatus)
     hass.services.async_register(DOMAIN, "getplanstatusservice", getPlanStatus)
     hass.services.async_register(DOMAIN, "changemedicalalertstateservice", changemedicalalertstate)
-
-
+    hass.services.async_register(DOMAIN, "changegoodnightranfordaystateservice", changegoodnightranfordaystate)
+    hass.services.async_register(DOMAIN, "changerenteroccupiedstateservice", changerenteroccupiedstate)
+    
+      
 async def initialize_eh(hass: HomeAssistant, username, systemid, coordinator) -> bool:
     print("Calling Initialize EH API")
 
@@ -657,7 +674,17 @@ async def changemedicalalertstate(calldata):
     hass = HASSComponent.get_hass()
     hass.data[DOMAIN]["MedicalAlertTriggered"] = calldata.data["newstate"]
 
- 
+async def changegoodnightranfordaystate(calldata):
+    _LOGGER.debug("change goodnight ran for day calldata ="+ str(calldata.data))
+   
+    hass = HASSComponent.get_hass()
+    hass.data[DOMAIN]["GoodnightRanForDay"] = calldata.data["newstate"]    
+
+async def changerenteroccupiedstate(calldata):
+    _LOGGER.debug("change renter occupied state calldata ="+ str(calldata.data))
+   
+    hass = HASSComponent.get_hass()
+    hass.data[DOMAIN]["IsRenterOccupied"] = calldata.data["newstate"]    
 
 async def createevent(calldata):
     _LOGGER.debug("create event calldata ="+ str(calldata.data))
