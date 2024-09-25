@@ -35,7 +35,6 @@ from .panel import (
 )
 from .card import async_register_card
 from .websockets import async_register_websockets
-from .theme import effortlesshomeTheme
 from .deviceclassgroupsync import async_setup_devicegroup
 
 from .sensors import (
@@ -82,6 +81,8 @@ from .binary_sensor import binarymedalertsensor
 from .binary_sensor import sleepingsensor
 from .binary_sensor import someonehomesensor
 from .binary_sensor import renteroccupiedsensor
+from .SecurityAlarmWebhook import SecurityAlarmWebhook 
+from .theme import EHTheme
 
 import os
 import yaml
@@ -112,6 +113,7 @@ async def async_setup(hass, config):
     await hass.helpers.discovery.async_load_platform('binary_sensor', const.DOMAIN , {}, config) 
 
     return True
+
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
@@ -155,9 +157,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     #await async_setup_entities(hass, entry)
     await async_setup_devicegroup(hass, entry)
     await getPlanStatus(None)
+    theme = EHTheme(hass)
+    await EHTheme.async_setup_theme(theme)
 
-    theme = effortlesshomeTheme(hass)
-    await theme.async_setup()
+    webhook = SecurityAlarmWebhook(hass)
+    await SecurityAlarmWebhook.async_setup_webhook(webhook)
 
     # Websocket support
     await async_register_websockets(hass)

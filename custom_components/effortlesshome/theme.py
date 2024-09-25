@@ -12,7 +12,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-class effortlesshomeTheme:
+class EHTheme:
     """Class to represent the EffortlessHome theme."""
 
     def __init__(self, hass: HomeAssistant):
@@ -44,7 +44,7 @@ class effortlesshomeTheme:
             "frontend", "set_theme", {"name": self.theme_name, "data": self.theme_data}
         )
 
-    async def async_setup(self):
+    async def async_setup_theme(self):
         """Setup the EffortlessHome theme during integration setup."""
         _LOGGER.info(f"Setting up {self.theme_name} theme")
         # Register the theme service with Home Assistant

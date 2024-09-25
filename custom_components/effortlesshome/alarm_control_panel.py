@@ -144,6 +144,7 @@ async def createalarm(open_sensors: dict = None):
         hass.states.async_set("effortlesshome.alarmcreatemessage", alarmcreatemessage)
         hass.states.async_set("effortlesshome.alarmownerid", alarmownerid)
         hass.states.async_set("effortlesshome.alarmstatus", alarmstatus)
+        hass.states.async_set("effortlesshome.alarmlasteventtype", "alarm.status.created")
 
     return
     
