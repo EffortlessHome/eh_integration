@@ -245,7 +245,7 @@ async def cancelalarm():
     """Call the API to create a medical alarm."""
     _LOGGER.debug("in cancel alarm")
 
-    hass.data[DOMAIN]["MedicalAlertTriggered"] = "off"
+    hass.data[DOMAIN]["MedicalAlertTriggered"] = "Off"
 
     alarmstate = hass.states.get("effortlesshome.alarm_id")
 

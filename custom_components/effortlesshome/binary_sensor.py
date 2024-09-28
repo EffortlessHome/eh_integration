@@ -122,7 +122,7 @@ class someonehomesensor(BinarySensorEntity):
         entity_id = 'binary_sensor.motionsensors'
         motion_sensor_state = self.hass.states.get(entity_id)
 
-        if home > 0 or motion_sensor_state.state == "on" or self.hass.data[DOMAIN]["IsRenterOccupied"] == "On":
+        if home > 0 or motion_sensor_state.state == "On" or self.hass.data[DOMAIN]["IsRenterOccupied"] == "On":
             self._state = "On"
         else:
             self._state = "Off"
