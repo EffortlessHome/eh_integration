@@ -82,7 +82,8 @@ from .binary_sensor import sleepingsensor
 from .binary_sensor import someonehomesensor
 from .binary_sensor import renteroccupiedsensor
 from .SecurityAlarmWebhook import SecurityAlarmWebhook 
-from .theme import EHTheme
+from .deviceclassgroupsync import async_setup_devicegroup
+from .lightgroup import async_setup_lightgroup_entry
 
 import os
 import yaml
@@ -111,6 +112,9 @@ async def async_setup(hass, config):
 
     #await hass.helpers.discovery.async_load_platform('sensor', const.DOMAIN , {}, config)
     await hass.helpers.discovery.async_load_platform('binary_sensor', const.DOMAIN , {}, config) 
+
+    await async_setup_devicegroup(hass, config)
+   # await async_setup_lightgroup_entry(hass, config)
 
     return True
 
@@ -153,12 +157,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     await async_register_panel(hass)
     await async_register_card(hass)
 
-    #eh custom
-    #await async_setup_entities(hass, entry)
-    await async_setup_devicegroup(hass, entry)
+
     await getPlanStatus(None)
-    theme = EHTheme(hass)
-    await EHTheme.async_setup_theme(theme)
 
     webhook = SecurityAlarmWebhook(hass)
     await SecurityAlarmWebhook.async_setup_webhook(webhook)

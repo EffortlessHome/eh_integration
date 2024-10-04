@@ -35,22 +35,22 @@ class DeviceClassGroupSync:
             if entity.attributes.get('device_class') == self.device_class
         ]      
 
-        if matching_entities:
-            _LOGGER.debug("Device Class Entities " + str(matching_entities))
+       # if matching_entities:
+        _LOGGER.debug("Device Class Entities " + str(matching_entities))
 
-            # Use the group.set service to create or update the group
-           # await self.hass.services.async_call(
-           #     'group', 'set',
-           #     {
-           #         'object_id': self.group_name,  # Group name (without the "group." prefix)
-           #         'name': f"Devices with {self.device_class}",
-           #         'entities': matching_entities,
-           #         'visible': True
-           #     }
-           # )
-            print(f"Synced {len(matching_entities)} entities to group {self.group_name}")
-        else:
-            print(f"No entities found with device_class '{self.device_class}'")
+        # Use the group.set service to create or update the group
+        await self.hass.services.async_call(
+            'group', 'set',
+            {
+                'object_id': self.group_name,  # Group name (without the "group." prefix)
+                'name': f"{self.device_class} Group",
+                'entities': matching_entities
+            }
+        )
+
+        _LOGGER.debug(f"Synced {len(matching_entities)} entities to group {self.group_name}")
+        #else:
+        #    _LOGGER.debug(f"No entities found with device_class '{self.device_class}'")
 
 # Example usage inside your custom integration
 async def async_setup_devicegroup(hass, config):
@@ -62,6 +62,10 @@ async def async_setup_devicegroup(hass, config):
     # Initialize the group sync for 'motion' device_class
     motion_sync = DeviceClassGroupSync(hass, "motion_sensors_group", "motion")
     await motion_sync.find_and_sync_devices()
+
+        # Initialize the group sync for 'presence' device_class
+    presence_sync = DeviceClassGroupSync(hass, "presence_sensors_group", "presence")
+    await presence_sync.find_and_sync_devices()
 
     # Initialize the group sync for 'smoke' device_class
     smokealarm_sync = DeviceClassGroupSync(hass, "smokealarm_sensors_group", "smoke")
@@ -82,5 +86,17 @@ async def async_setup_devicegroup(hass, config):
     # Initialize the group sync for 'safety' device_class
     safety_sync = DeviceClassGroupSync(hass, "safety_sensors_group", "safety")
     await safety_sync.find_and_sync_devices()
+
+     # Initialize the group sync for 'moisture' device_class
+    moisture_sync = DeviceClassGroupSync(hass, "moisture_sensors_group", "moisture")
+    await moisture_sync.find_and_sync_devices()
+
+    # Initialize the group sync for 'sound' device_class
+    sound_sync = DeviceClassGroupSync(hass, "sound_sensors_group", "sound")
+    await sound_sync.find_and_sync_devices()
+
+    # Initialize the group sync for 'vibration' device_class
+    vibration_sync = DeviceClassGroupSync(hass, "vibration_sensors_group", "vibration")
+    await vibration_sync.find_and_sync_devices()
 
     return True
