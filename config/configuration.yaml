@@ -5,10 +5,13 @@ default_config:
 homeassistant:
   debug: true
 
+ai_optimizer:
+
 # https://www.home-assistant.io/integrations/logger/
 logger:
   default: info
   logs:
     custom_components.integration_EffortlessHome: debug
+    custom_components.integration_ai_optimizer: debug
 
 
