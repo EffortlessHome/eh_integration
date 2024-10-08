@@ -11,11 +11,16 @@
   "config_flow": true,
   "dependencies": [
     "http",
-    "panel_custom"
+    "panel_custom",
+    "recorder"
+  ],
+  "requirements": [
+    "numpy>=1.21.2",
+    "scikit-learn>=0.24.2"
   ],
   "documentation": "https://github.com/EffortlessHome/eh_integration",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/EffortlessHome/eh_integration/issues",
   "requirements": [],
-  "version": "1.2.6"
+  "version": "1.2.7"
 }

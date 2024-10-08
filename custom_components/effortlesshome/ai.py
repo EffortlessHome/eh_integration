@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, callback
 _LOGGER = logging.getLogger(__name__)
 
 
-class HASSComponent:
+class AIHASSComponent:
     # Class-level property to hold the hass instance
     hass_instance = None
 
@@ -26,32 +26,15 @@ class HASSComponent:
         return cls.hass_instance
 
 
-async def async_setup(hass: HomeAssistant, config):
-    """Set up the AI Optimizer component."""
-
-    HASSComponent.set_hass(hass)
-
-    # Register a service that can be called from the frontend
-
-    @callback
-    async def createoptimizehomeservice(call: ServiceCall):
-        await optimize_home(call)
-
-    hass.services.async_register(
-        "ai_optimizer", "createoptimizehomeservice", optimize_home
-    )
-    return True
-
-
 async def optimize_home(call):
     """Handler for the optimization service."""
     entity_id = call.data.get("entity_id")
 
     _LOGGER.debug("In optimize_home. EntityID:" + entity_id)
 
-    hass = HASSComponent.get_hass()
+    hass = AIHASSComponent.get_hass()
 
-    history_data = await fetch_history_data(hass, entity_id, 30)
+    history_data = fetch_history_data(hass, entity_id, 30)
     if not history_data:
         _LOGGER.warning("No history data found for %s", entity_id)
         return
@@ -71,7 +54,11 @@ def fetch_history_data(hass, entity_id, days=30):
     """Fetch historical data for an entity."""
     _LOGGER.debug("In fetch history data")
     start_time = dt_util.utcnow() - timedelta(days=days)
-    history_data = hass.states.async_all(entity_id=entity_id, start_time=start_time)
+    history_data = hass.states.async_all()
+
+    _LOGGER.debug("History data returned")
+    print(history_data)
+
     return history_data
 
 
@@ -80,7 +67,9 @@ def analyze_data(history_data):
 
     _LOGGER.debug("In analyze data")
 
-    timestamps = [state.last_updated for state in history_data]
+    timestamps = [
+        state.last_updated.strftime("%Y-%m-%d %H:%M:%S") for state in history_data
+    ]
     values = [state.state for state in history_data]
 
     # Convert timestamps and values to numpy arrays

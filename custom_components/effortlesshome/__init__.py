@@ -81,13 +81,26 @@ from .binary_sensor import binarymedalertsensor
 from .binary_sensor import sleepingsensor
 from .binary_sensor import someonehomesensor
 from .binary_sensor import renteroccupiedsensor
-from .SecurityAlarmWebhook import SecurityAlarmWebhook 
+from .SecurityAlarmWebhook import SecurityAlarmWebhook
 from .deviceclassgroupsync import async_setup_devicegroup
 from .lightgroup import async_setup_lightgroup_entry
 from .alarm_control_panel import createalarm
+from .ai import optimize_home
+from .ai import AIHASSComponent
 
 import os
 import yaml
+
+from homeassistant.components.recorder.models import state
+from homeassistant.util import dt as dt_util
+from datetime import timedelta
+import numpy as np
+from sklearn.cluster import KMeans
+from homeassistant.components.recorder.models import state
+from homeassistant.util import dt as dt_util
+from datetime import timedelta
+from homeassistant.core import HomeAssistant, ServiceCall, callback
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -111,14 +124,23 @@ async def async_setup(hass, config):
 
     _LOGGER.info("Setting up effortlesshome binary sensors integration")
 
-    #await hass.helpers.discovery.async_load_platform('sensor', const.DOMAIN , {}, config)
-    await hass.helpers.discovery.async_load_platform('binary_sensor', const.DOMAIN , {}, config) 
+    # await hass.helpers.discovery.async_load_platform('sensor', const.DOMAIN , {}, config)
+    await hass.helpers.discovery.async_load_platform(
+        "binary_sensor", const.DOMAIN, {}, config
+    )
 
     await async_setup_devicegroup(hass, config)
-   # await async_setup_lightgroup_entry(hass, config)
+    # await async_setup_lightgroup_entry(hass, config)
+
+    AIHASSComponent.set_hass(hass)
+
+    @callback
+    async def createoptimizehomeservice(call: ServiceCall):
+        await optimize_home(call)
+
+    hass.services.async_register(DOMAIN, "createoptimizehomeservice", optimize_home)
 
     return True
-
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
@@ -146,7 +168,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     if result is False:
         return
-      
+
     if entry.unique_id is None:
         hass.config_entries.async_update_entry(entry, unique_id=coordinator.id, data={})
 
@@ -157,7 +179,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     # Register the panel (frontend)
     await async_register_panel(hass)
     await async_register_card(hass)
-
 
     await getPlanStatus(None)
 
@@ -200,6 +221,7 @@ async def async_remove_entry(hass, entry):
     coordinator = hass.data[const.DOMAIN]["coordinator"]
     await coordinator.async_delete_config()
     del hass.data[const.DOMAIN]
+
 
 class effortlesshomeCoordinator(DataUpdateCoordinator):
     """Define an object to hold effortlesshome device."""
@@ -601,10 +623,8 @@ def register_services(hass):
     )
 
 
-
 @callback
 def register_security_services(hass):
-
     @callback
     async def createeventservice(call: ServiceCall):
         await createevent(call)
@@ -619,37 +639,41 @@ def register_security_services(hass):
 
     @callback
     async def getplanstatusservice(call: ServiceCall):
-        await getPlanStatus(call)    
+        await getPlanStatus(call)
 
     @callback
     async def changemedicalalertstateservice(call: ServiceCall):
-        await changemedicalalertstate(call)        
+        await changemedicalalertstate(call)
 
     @callback
     async def changegoodnightranfordaystateservice(call: ServiceCall):
-        await changegoodnightranfordaystate(call)     
+        await changegoodnightranfordaystate(call)
 
     @callback
     async def changerenteroccupiedstateservice(call: ServiceCall):
-        await changerenteroccupiedstate(call)         
+        await changerenteroccupiedstate(call)
 
     @callback
     async def confirmpendingalarmservice(call: ServiceCall):
-        await createalarm(call)  
-
+        await createalarm(call)
 
     # Register our service with Home Assistant.
     hass.services.async_register(DOMAIN, "createeventservice", createevent)
     hass.services.async_register(DOMAIN, "cancelalarmservice", cancelalarm)
     hass.services.async_register(DOMAIN, "getalarmstatusservice", getalarmstatus)
     hass.services.async_register(DOMAIN, "getplanstatusservice", getPlanStatus)
-    hass.services.async_register(DOMAIN, "changemedicalalertstateservice", changemedicalalertstate)
-    hass.services.async_register(DOMAIN, "changegoodnightranfordaystateservice", changegoodnightranfordaystate)
-    hass.services.async_register(DOMAIN, "changerenteroccupiedstateservice", changerenteroccupiedstate)
+    hass.services.async_register(
+        DOMAIN, "changemedicalalertstateservice", changemedicalalertstate
+    )
+    hass.services.async_register(
+        DOMAIN, "changegoodnightranfordaystateservice", changegoodnightranfordaystate
+    )
+    hass.services.async_register(
+        DOMAIN, "changerenteroccupiedstateservice", changerenteroccupiedstate
+    )
     hass.services.async_register(DOMAIN, "confirmpendingalarmservice", createalarm)
 
-    
-      
+
 async def initialize_eh(hass: HomeAssistant, username, systemid, coordinator) -> bool:
     print("Calling Initialize EH API")
 
@@ -667,42 +691,55 @@ async def initialize_eh(hass: HomeAssistant, username, systemid, coordinator) ->
 
             if response.status == 200:
                 parsed_data = json.loads(content)
-            
-                hass.states.async_set("effortlesshome.fullname", parsed_data["fullname"])
+
+                hass.states.async_set(
+                    "effortlesshome.fullname", parsed_data["fullname"]
+                )
                 hass.states.async_set(
                     "effortlesshome.phonenumber", parsed_data["phonenumber"]
                 )
 
                 hass.data.setdefault(const.DOMAIN, {})
-                hass.data[const.DOMAIN] = {"coordinator": coordinator, "areas": {}, "master": None, "username": username, "systemid": systemid, "eh_security_token": parsed_data["ha_security_token"]}
+                hass.data[const.DOMAIN] = {
+                    "coordinator": coordinator,
+                    "areas": {},
+                    "master": None,
+                    "username": username,
+                    "systemid": systemid,
+                    "eh_security_token": parsed_data["ha_security_token"],
+                }
 
                 return True
             else:
                 return False
 
+
 async def changemedicalalertstate(calldata):
-    _LOGGER.debug("change medical alert calldata ="+ str(calldata.data))
-   
+    _LOGGER.debug("change medical alert calldata =" + str(calldata.data))
+
     hass = HASSComponent.get_hass()
     hass.data[DOMAIN]["MedicalAlertTriggered"] = calldata.data["newstate"]
 
+
 async def changegoodnightranfordaystate(calldata):
-    _LOGGER.debug("change goodnight ran for day calldata ="+ str(calldata.data))
-   
+    _LOGGER.debug("change goodnight ran for day calldata =" + str(calldata.data))
+
     hass = HASSComponent.get_hass()
-    hass.data[DOMAIN]["GoodnightRanForDay"] = calldata.data["newstate"]    
+    hass.data[DOMAIN]["GoodnightRanForDay"] = calldata.data["newstate"]
+
 
 async def changerenteroccupiedstate(calldata):
-    _LOGGER.debug("change renter occupied state calldata ="+ str(calldata.data))
-   
+    _LOGGER.debug("change renter occupied state calldata =" + str(calldata.data))
+
     hass = HASSComponent.get_hass()
-    hass.data[DOMAIN]["IsRenterOccupied"] = calldata.data["newstate"]    
+    hass.data[DOMAIN]["IsRenterOccupied"] = calldata.data["newstate"]
+
 
 async def createevent(calldata):
-    _LOGGER.debug("create event calldata ="+ str(calldata.data))
-   
+    _LOGGER.debug("create event calldata =" + str(calldata.data))
+
     hass = HASSComponent.get_hass()
-    
+
     devicestate = hass.states.get(calldata.data["entity_id"])
     sensor_device_class = None
     sensor_device_name = None
@@ -713,11 +750,11 @@ async def createevent(calldata):
     if devicestate and devicestate.attributes.get("device_class"):
         sensor_device_class = devicestate.attributes["device_class"]
 
-    _LOGGER.debug("sensor_device_class ="+ sensor_device_class)
-    _LOGGER.debug("sensor_device_name ="+ sensor_device_name)
+    _LOGGER.debug("sensor_device_class =" + sensor_device_class)
+    _LOGGER.debug("sensor_device_name =" + sensor_device_name)
 
     if sensor_device_class is not None and sensor_device_name is not None:
-        await createevent_internal(sensor_device_name, sensor_device_class)     
+        await createevent_internal(sensor_device_name, sensor_device_class)
 
 
 async def createevent_internal(sensor_device_name, sensor_device_class):
@@ -725,31 +762,39 @@ async def createevent_internal(sensor_device_name, sensor_device_class):
 
     alarmstate = hass.states.get("effortlesshome.alarm_id")
 
-    jsonpayload = '{ "sensor_device_class":"'+ sensor_device_class +'", "sensor_device_name":"'+ sensor_device_name +'" }'
+    jsonpayload = (
+        '{ "sensor_device_class":"'
+        + sensor_device_class
+        + '", "sensor_device_name":"'
+        + sensor_device_name
+        + '" }'
+    )
 
     if alarmstate is not None:
         alarmstatus = hass.states.get("effortlesshome.alarmstatus").state
 
         if alarmstatus == "ACTIVE":
             alarmid = hass.states.get("effortlesshome.alarm_id").state
-            _LOGGER.debug("alarm id ="+ alarmid)
+            _LOGGER.debug("alarm id =" + alarmid)
 
             """Call the API to create event."""
             systemid = hass.data[const.DOMAIN]["systemid"]
             eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]
 
-            url = EH_SECURITY_API +"createevent/" + alarmid
+            url = EH_SECURITY_API + "createevent/" + alarmid
             headers = {
                 "accept": "application/json, text/html",
                 "X-Custom-PSK": eh_security_token,
                 "eh_system_id": systemid,
                 "Content-Type": "application/json; charset=utf-8",
             }
-            
+
             _LOGGER.info("Calling create event API with payload: %s", jsonpayload)
 
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, headers=headers, json=json.loads(jsonpayload)) as response:
+                async with session.post(
+                    url, headers=headers, json=json.loads(jsonpayload)
+                ) as response:
                     _LOGGER.debug("API response status: %s", response.status)
                     _LOGGER.debug("API response headers: %s", response.headers)
                     content = await response.text()
@@ -769,12 +814,12 @@ async def cancelalarm(calldata):
 
         if alarmstatus == "ACTIVE":
             alarmid = hass.states.get("effortlesshome.alarm_id").state
-            _LOGGER.debug("alarm id ="+ alarmid)
+            _LOGGER.debug("alarm id =" + alarmid)
 
             systemid = hass.data[const.DOMAIN]["systemid"]
             eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]
 
-            url = EH_SECURITY_API +"cancelalarm/" + alarmid
+            url = EH_SECURITY_API + "cancelalarm/" + alarmid
             headers = {
                 "accept": "application/json, text/html",
                 "X-Custom-PSK": eh_security_token,
@@ -807,7 +852,7 @@ async def getalarmstatus(calldata):
         systemid = hass.data[const.DOMAIN]["systemid"]
         eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]
 
-        url = EH_SECURITY_API +"getalarmstatus/" + alarmid
+        url = EH_SECURITY_API + "getalarmstatus/" + alarmid
         headers = {
             "accept": "application/json, text/html",
             "X-Custom-PSK": eh_security_token,
@@ -826,18 +871,19 @@ async def getalarmstatus(calldata):
 
                 if content is not None:
                     json_dict = json.loads(content)
-                    alarmstatus = json_dict['status']
+                    alarmstatus = json_dict["status"]
                     hass.states.async_set("effortlesshome.alarmstatus", alarmstatus)
 
                 return content
-            
+
+
 async def getPlanStatus(calldata):
     hass = HASSComponent.get_hass()
 
     systemid = hass.data[const.DOMAIN]["systemid"]
     eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]
 
-    url = EH_SECURITY_API +"getsystemplansbysystemid/" + systemid
+    url = EH_SECURITY_API + "getsystemplansbysystemid/" + systemid
     headers = {
         "accept": "application/json, text/html",
         "X-Custom-PSK": eh_security_token,
@@ -854,7 +900,7 @@ async def getPlanStatus(calldata):
             content = await response.text()
             _LOGGER.debug("API response content: %s", content)
 
-            #content: {"success":true,"meta":{"served_by":"v3-prod","duration":0.2581,"changes":0,"last_row_id":0,"changed_db":false,"size_after":45056,"rows_read":24,"rows_written":0},"results":[{"PlanID":1,"name":"Base Plan"},{"PlanID":2,"name":"Security Plan"},{"PlanID":3,"name":"Monitoring Plan"},{"PlanID":4,"name":"Medical Alert Plan"}]}
+            # content: {"success":true,"meta":{"served_by":"v3-prod","duration":0.2581,"changes":0,"last_row_id":0,"changed_db":false,"size_after":45056,"rows_read":24,"rows_written":0},"results":[{"PlanID":1,"name":"Base Plan"},{"PlanID":2,"name":"Security Plan"},{"PlanID":3,"name":"Monitoring Plan"},{"PlanID":4,"name":"Medical Alert Plan"}]}
             if content is not None:
                 data = json.loads(content)
 
@@ -869,15 +915,19 @@ async def getPlanStatus(calldata):
                         if plan_id == 1:
                             hass.states.async_set("effortlesshome.activebaseplan", True)
                         elif plan_id == 2:
-                            hass.states.async_set("effortlesshome.activesecurityplan", True)
+                            hass.states.async_set(
+                                "effortlesshome.activesecurityplan", True
+                            )
                         elif plan_id == 3:
-                            hass.states.async_set("effortlesshome.activemonitoringplan", True)
+                            hass.states.async_set(
+                                "effortlesshome.activemonitoringplan", True
+                            )
                         elif plan_id == 4:
-                            hass.states.async_set("effortlesshome.activemedicalalertplan", True)
+                            hass.states.async_set(
+                                "effortlesshome.activemedicalalertplan", True
+                            )
 
             else:
                 _LOGGER.debug("No Active Plans Found For This System")
 
             return content
-
-    
