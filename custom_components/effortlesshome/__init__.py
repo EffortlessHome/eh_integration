@@ -46,7 +46,7 @@ from homeassistant.helpers.service import (
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
-from sklearn.cluster import KMeans
+
 
 from . import const
 from .ai import AIHASSComponent, optimize_home
