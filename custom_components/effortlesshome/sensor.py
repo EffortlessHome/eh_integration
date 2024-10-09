@@ -1,15 +1,21 @@
 """Platform for sensor integration."""
+
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+from typing import TYPE_CHECKING
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
+    SensorEntity,
 )
 
 from .const import DOMAIN
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+    from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+
 
 def setup_platform(
     hass: HomeAssistant,
@@ -50,11 +56,9 @@ class ehsensor(SensorEntity):
         return TEMP_CELSIUS
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
         self._state = self.hass.data[DOMAIN]["temperature"]
-
-
-

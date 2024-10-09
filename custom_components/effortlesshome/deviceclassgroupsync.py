@@ -1,29 +1,18 @@
-from homeassistant.components.group import DOMAIN as GROUP_DOMAIN
-from homeassistant.helpers.entity import Entity
-from homeassistant.components.input_boolean import InputBoolean
-from homeassistant.components.input_text import InputText
-from homeassistant.components.text import TextEntity
-
 import logging
-from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.helpers.template import Template
 
 _LOGGER = logging.getLogger(__name__)
 
-from .const import CONF_USERNAME
-from .const import CONF_SYSTEMID
-from .const import DOMAIN
 
 class DeviceClassGroupSync:
     """Custom integration class to sync devices by device_class into a group."""
 
-    def __init__(self, hass, group_name, device_class):
+    def __init__(self, hass, group_name, device_class) -> None:
         """Initialize the class with the Home Assistant instance."""
         self.hass = hass
         self.group_name = group_name
         self.device_class = device_class
 
-    async def find_and_sync_devices(self):
+    async def find_and_sync_devices(self) -> None:
         """Find all devices by device_class and sync them into a group."""
         # Get all states from Home Assistant
         all_entities = self.hass.states.async_all()
@@ -32,28 +21,32 @@ class DeviceClassGroupSync:
         matching_entities = [
             entity.entity_id
             for entity in all_entities
-            if entity.attributes.get('device_class') == self.device_class
-        ]      
+            if entity.attributes.get("device_class") == self.device_class
+        ]
 
-       # if matching_entities:
+        # if matching_entities:
         _LOGGER.debug("Device Class Entities " + str(matching_entities))
 
         # Use the group.set service to create or update the group
         await self.hass.services.async_call(
-            'group', 'set',
+            "group",
+            "set",
             {
-                'object_id': self.group_name,  # Group name (without the "group." prefix)
-                'name': f"{self.device_class} Group",
-                'entities': matching_entities
-            }
+                "object_id": self.group_name,  # Group name (without the "group." prefix)
+                "name": f"{self.device_class} Group",
+                "entities": matching_entities,
+            },
         )
 
-        _LOGGER.debug(f"Synced {len(matching_entities)} entities to group {self.group_name}")
-        #else:
+        _LOGGER.debug(
+            f"Synced {len(matching_entities)} entities to group {self.group_name}"
+        )
+        # else:
         #    _LOGGER.debug(f"No entities found with device_class '{self.device_class}'")
 
+
 # Example usage inside your custom integration
-async def async_setup_devicegroup(hass, config):
+async def async_setup_devicegroup(hass, config) -> bool:
     """Set up the integration."""
     # Initialize the group sync for 'temperature' device_class
     device_sync = DeviceClassGroupSync(hass, "heat_sensors_group", "heat")
@@ -63,7 +56,7 @@ async def async_setup_devicegroup(hass, config):
     motion_sync = DeviceClassGroupSync(hass, "motion_sensors_group", "motion")
     await motion_sync.find_and_sync_devices()
 
-        # Initialize the group sync for 'presence' device_class
+    # Initialize the group sync for 'presence' device_class
     presence_sync = DeviceClassGroupSync(hass, "presence_sensors_group", "presence")
     await presence_sync.find_and_sync_devices()
 
@@ -72,7 +65,9 @@ async def async_setup_devicegroup(hass, config):
     await smokealarm_sync.find_and_sync_devices()
 
     # Initialize the group sync for 'carbon_monoxide' device_class
-    carbon_monoxide_sync = DeviceClassGroupSync(hass, "carbon_monoxide_sensors_group", "carbon_monoxide")
+    carbon_monoxide_sync = DeviceClassGroupSync(
+        hass, "carbon_monoxide_sensors_group", "carbon_monoxide"
+    )
     await carbon_monoxide_sync.find_and_sync_devices()
 
     # Initialize the group sync for 'door' device_class
@@ -87,7 +82,7 @@ async def async_setup_devicegroup(hass, config):
     safety_sync = DeviceClassGroupSync(hass, "safety_sensors_group", "safety")
     await safety_sync.find_and_sync_devices()
 
-     # Initialize the group sync for 'moisture' device_class
+    # Initialize the group sync for 'moisture' device_class
     moisture_sync = DeviceClassGroupSync(hass, "moisture_sensors_group", "moisture")
     await moisture_sync.find_and_sync_devices()
 

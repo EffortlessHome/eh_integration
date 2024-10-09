@@ -1,15 +1,21 @@
 """Platform for sensor integration."""
+
 from __future__ import annotations
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 import logging
+from typing import TYPE_CHECKING
+
+from homeassistant.components.binary_sensor import BinarySensorEntity
 
 from .const import DOMAIN
 
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+    from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+
 _LOGGER = logging.getLogger(__name__)
+
 
 def setup_platform(
     hass: HomeAssistant,
@@ -35,6 +41,7 @@ def setup_platform(
     add_entities([presencegroup()])
     add_entities([safetygroup()])
 
+
 class presencegroup(BinarySensorEntity):
     """Representation of a sensor."""
 
@@ -42,15 +49,15 @@ class presencegroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = 'Clear'
+        self._state = "Clear"
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
         return "Presence Group Sensor"
-    
-    @property 
-    def icon(self):
+
+    @property
+    def icon(self) -> str:
         return "mdi:motion-sensor"
 
     @property
@@ -59,15 +66,16 @@ class presencegroup(BinarySensorEntity):
         return self._state
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
-
-        entity_id = 'group.presence_sensors_group'
+        entity_id = "group.presence_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state   
+        self._state = sensor_state.state
+
 
 class safetygroup(BinarySensorEntity):
     """Representation of a sensor."""
@@ -76,15 +84,15 @@ class safetygroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = 'Safe'
+        self._state = "Safe"
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
         return "Safety Group Sensor"
-    
-    @property 
-    def icon(self):
+
+    @property
+    def icon(self) -> str:
         return "mdi:ambulance"
 
     @property
@@ -93,15 +101,16 @@ class safetygroup(BinarySensorEntity):
         return self._state
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
-
-        entity_id = 'group.safety_sensors_group'
+        entity_id = "group.safety_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state   
+        self._state = sensor_state.state
+
 
 class windowgroup(BinarySensorEntity):
     """Representation of a sensor."""
@@ -110,15 +119,15 @@ class windowgroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = 'Closed'
+        self._state = "Closed"
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
         return "Window Group Sensor"
-    
-    @property 
-    def icon(self):
+
+    @property
+    def icon(self) -> str:
         return "mdi:window-closed"
 
     @property
@@ -127,15 +136,16 @@ class windowgroup(BinarySensorEntity):
         return self._state
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
-
-        entity_id = 'group.window_sensors_group'
+        entity_id = "group.window_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state   
+        self._state = sensor_state.state
+
 
 class doorgroup(BinarySensorEntity):
     """Representation of a sensor."""
@@ -144,15 +154,15 @@ class doorgroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = 'Closed'
+        self._state = "Closed"
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
         return "Door Group Sensor"
-    
-    @property 
-    def icon(self):
+
+    @property
+    def icon(self) -> str:
         return "mdi:door"
 
     @property
@@ -161,15 +171,16 @@ class doorgroup(BinarySensorEntity):
         return self._state
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
-
-        entity_id = 'group.door_sensors_group'
+        entity_id = "group.door_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state    
+        self._state = sensor_state.state
+
 
 class carbonmonoxidegroup(BinarySensorEntity):
     """Representation of a sensor."""
@@ -178,15 +189,15 @@ class carbonmonoxidegroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = 'Clear'
+        self._state = "Clear"
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
         return "Carbon Monoxide Group Sensor"
-    
-    @property 
-    def icon(self):
+
+    @property
+    def icon(self) -> str:
         return "mdi:molecule-co"
 
     @property
@@ -195,15 +206,16 @@ class carbonmonoxidegroup(BinarySensorEntity):
         return self._state
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
-
-        entity_id = 'group.carbon_monoxide_sensors_group'
+        entity_id = "group.carbon_monoxide_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state    
+        self._state = sensor_state.state
+
 
 class moisturegroup(BinarySensorEntity):
     """Representation of a sensor."""
@@ -212,15 +224,15 @@ class moisturegroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = 'Dry'
+        self._state = "Dry"
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
         return "Moisture Group Sensor"
-    
-    @property 
-    def icon(self):
+
+    @property
+    def icon(self) -> str:
         return "mdi:water"
 
     @property
@@ -229,15 +241,16 @@ class moisturegroup(BinarySensorEntity):
         return self._state
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
-
-        entity_id = 'group.moisture_sensors_group'
+        entity_id = "group.moisture_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
         self._state = sensor_state.state
+
 
 class smokegroup(BinarySensorEntity):
     """Representation of a sensor."""
@@ -246,15 +259,15 @@ class smokegroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = 'Clear'
+        self._state = "Clear"
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
         return "Smoke Group Sensor"
-    
-    @property 
-    def icon(self):
+
+    @property
+    def icon(self) -> str:
         return "mdi:smoke-detector"
 
     @property
@@ -263,15 +276,16 @@ class smokegroup(BinarySensorEntity):
         return self._state
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
-
-        entity_id = 'group.smokealarm_sensors_group'
+        entity_id = "group.smokealarm_sensors_group"
         smoke_sensor_state = self.hass.states.get(entity_id)
 
         self._state = smoke_sensor_state.state
+
 
 class motiongroup(BinarySensorEntity):
     """Representation of a sensor."""
@@ -280,15 +294,15 @@ class motiongroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = 'Off'
+        self._state = "Off"
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
         return "Motion Group Sensor"
-    
-    @property 
-    def icon(self):
+
+    @property
+    def icon(self) -> str:
         return "mdi:motion-sensor"
 
     @property
@@ -297,13 +311,13 @@ class motiongroup(BinarySensorEntity):
         return self._state
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
-
-         # Access the state of the 'binary_sensor.motionsensors' entity
-        entity_id = 'group.motion_sensors_group'
+        # Access the state of the 'binary_sensor.motionsensors' entity
+        entity_id = "group.motion_sensors_group"
         motion_sensor_state = self.hass.states.get(entity_id)
 
         self._state = motion_sensor_state.state
@@ -322,9 +336,9 @@ class binarymedalertsensor(BinarySensorEntity):
     def name(self) -> str:
         """Return the name of the sensor."""
         return "Medical Alert Sensor"
-    
-    @property 
-    def icon(self):
+
+    @property
+    def icon(self) -> str:
         return "mdi:ambulance"
 
     @property
@@ -333,11 +347,13 @@ class binarymedalertsensor(BinarySensorEntity):
         return self._state
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
         self._state = self.hass.data[DOMAIN]["MedicalAlertTriggered"]
+
 
 class sleepingsensor(BinarySensorEntity):
     """Representation of a sensor."""
@@ -355,17 +371,19 @@ class sleepingsensor(BinarySensorEntity):
     def state(self):
         """Return the state of the sensor."""
         return self._state
-        
-    @property 
-    def icon(self):
+
+    @property
+    def icon(self) -> str:
         return "mdi:chat-sleep"
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
         self._state = self.hass.data[DOMAIN]["GoodnightRanForDay"]
+
 
 class someonehomesensor(BinarySensorEntity):
     """Representation of a sensor."""
@@ -379,8 +397,8 @@ class someonehomesensor(BinarySensorEntity):
         """Return the name of the sensor."""
         return "Someone Home Sensor"
 
-    @property 
-    def icon(self):
+    @property
+    def icon(self) -> str:
         return "mdi:account-check"
 
     @property
@@ -389,24 +407,30 @@ class someonehomesensor(BinarySensorEntity):
         return self._state
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """
         home = 0
-        for entity_id in self.hass.states.entity_ids('device_tracker'):
+        for entity_id in self.hass.states.entity_ids("device_tracker"):
             state = self.hass.states.get(entity_id)
-            if state.state == 'home':
+            if state.state == "home":
                 home = home + 1
 
-         # Access the state of the 'binary_sensor.motionsensors' entity
-        entity_id = 'group.window_sensors_group'
+        # Access the state of the 'binary_sensor.motionsensors' entity
+        entity_id = "group.window_sensors_group"
         motion_sensor_state = self.hass.states.get(entity_id)
 
-        if home > 0 or motion_sensor_state.state == "On" or self.hass.data[DOMAIN]["IsRenterOccupied"] == "On":
+        if (
+            home > 0
+            or motion_sensor_state.state == "On"
+            or self.hass.data[DOMAIN]["IsRenterOccupied"] == "On"
+        ):
             self._state = "On"
         else:
             self._state = "Off"
+
 
 class renteroccupiedsensor(BinarySensorEntity):
     """Representation of a sensor."""
@@ -424,13 +448,14 @@ class renteroccupiedsensor(BinarySensorEntity):
     def state(self):
         """Return the state of the sensor."""
         return self._state
-        
-    @property 
-    def icon(self):
+
+    @property
+    def icon(self) -> str:
         return "mdi:bag-suitcase"
 
     def update(self) -> None:
-        """Fetch new state data for the sensor.
+        """
+        Fetch new state data for the sensor.
 
         This is the only method that should fetch new data for Home Assistant.
         """

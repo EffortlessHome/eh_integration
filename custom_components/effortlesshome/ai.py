@@ -1,14 +1,10 @@
 import logging
+from datetime import timedelta
+
+# import numpy as np
 from homeassistant.core import HomeAssistant
-from homeassistant.components.recorder.models import state
 from homeassistant.util import dt as dt_util
-from datetime import timedelta
-import numpy as np
-from sklearn.cluster import KMeans
-from homeassistant.components.recorder.models import state
-from homeassistant.util import dt as dt_util
-from datetime import timedelta
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+# from sklearn.cluster import KMeans
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,7 +14,7 @@ class AIHASSComponent:
     hass_instance = None
 
     @classmethod
-    def set_hass(cls, hass: HomeAssistant):
+    def set_hass(cls, hass: HomeAssistant) -> None:
         cls.hass_instance = hass
 
     @classmethod
@@ -26,11 +22,9 @@ class AIHASSComponent:
         return cls.hass_instance
 
 
-async def optimize_home(call):
-    """Handler for the optimization service."""
+async def optimize_home(call) -> None:
+    """Handler for the optimization service."""  # noqa: D401
     entity_id = call.data.get("entity_id")
-
-    _LOGGER.debug("In optimize_home. EntityID:" + entity_id)
 
     hass = AIHASSComponent.get_hass()
 
@@ -50,37 +44,33 @@ async def optimize_home(call):
         _LOGGER.info("Recommended automation: %s", recommendation)
 
 
-def fetch_history_data(hass, entity_id, days=30):
+def fetch_history_data(hass, entity_id, days=30):  # noqa: ANN201
     """Fetch historical data for an entity."""
     _LOGGER.debug("In fetch history data")
-    start_time = dt_util.utcnow() - timedelta(days=days)
+    dt_util.utcnow() - timedelta(days=days)
     history_data = hass.states.async_all()
 
     _LOGGER.debug("History data returned")
-    print(history_data)
 
     return history_data
 
 
 def analyze_data(history_data):
     """Analyze the history data using KMeans clustering to detect patterns."""
-
     _LOGGER.debug("In analyze data")
 
-    timestamps = [
-        state.last_updated.strftime("%Y-%m-%d %H:%M:%S") for state in history_data
-    ]
+    timestamps = [state.last_updated for state in history_data]
     values = [state.state for state in history_data]
 
     # Convert timestamps and values to numpy arrays
-    X = np.array(list(zip(timestamps, values)))
+    # X = np.array(list(zip(timestamps, values, strict=False)))
 
     # Apply KMeans clustering
-    kmeans = KMeans(n_clusters=3)
-    kmeans.fit(X)
+    # kmeans = KMeans(n_clusters=3)
+    # kmeans.fit(X)
 
     # Return the clustering labels
-    return kmeans.labels_
+    # return kmeans.labels_
 
 
 def generate_recommendations(cluster_labels, entity_id):

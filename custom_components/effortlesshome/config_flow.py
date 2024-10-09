@@ -1,28 +1,19 @@
 """Config flow for the effortlesshome component."""
 
+import logging
 import secrets
+
+import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
-
-from .const import CONF_USERNAME
-from .const import CONF_SYSTEMID
-from .const import DOMAIN
-from .const import PLATFORMS
-from .const import EH_INITIALIZE_API
-
-import asyncio
-import logging
-import socket
-import json
-
-import aiohttp
-import async_timeout
 
 from .const import (
+    CONF_SYSTEMID,
+    CONF_USERNAME,
     DOMAIN,
-    NAME,
+    EH_INITIALIZE_API,
+    PLATFORMS,
 )
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
@@ -34,13 +25,12 @@ class effortlesshomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = "1.0.0"
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize."""
         self._errors = {}
 
     async def async_step_user(self, user_input=None):
         """Handle a flow initialized by the user."""
-
         # Only a single instance of the integration
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
@@ -51,7 +41,9 @@ class effortlesshomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured(updates=user_input)
 
         if user_input is not None:
-            valid = await self.initialize_eh(user_input[CONF_USERNAME], user_input[CONF_SYSTEMID])
+            valid = await self.initialize_eh(
+                user_input[CONF_USERNAME], user_input[CONF_SYSTEMID]
+            )
 
             if valid:
                 # TODO: add entries for the retrieved data
@@ -67,8 +59,7 @@ class effortlesshomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     title=user_input[CONF_USERNAME], data=user_input
                 )
 
-            else:
-                self._errors["base"] = "Invalid Email. Please check and try again."
+            self._errors["base"] = "Invalid Email. Please check and try again."
 
             return await self._show_config_form(user_input)
 
@@ -93,8 +84,6 @@ class effortlesshomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def initialize_eh(self, username, systemid) -> bool:
-        print("Calling Initialize EH API")
-
         url = EH_INITIALIZE_API + username + "/" + systemid
         headers = {
             "Accept": "application/json, text/html",
@@ -108,24 +97,19 @@ class effortlesshomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug("API response content: %s", content)
 
                 if response.status == 200:
-           
-                    if content is None:
-                        return False
-                                     
-                    return True
-                else:
-                    return False
+                    return content is not None
+                return False
 
 
 class ehOptionsFlowHandler(config_entries.OptionsFlow):
     """Config flow options handler for effortlesshome."""
 
-    def __init__(self, config_entry):
+    def __init__(self, config_entry) -> None:
         """Initialize HACS options flow."""
         self.config_entry = config_entry
         self.options = dict(config_entry.options)
 
-    async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
+    async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument  # noqa: ANN001, ANN201, ARG002
         """Manage the options."""
         return await self.async_step_user()
 
@@ -147,7 +131,6 @@ class ehOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def _update_options(self):
         """Update config entry options."""
-
         return self.async_create_entry(
             title=self.config_entry.data.get(CONF_USERNAME), data=self.options
         )

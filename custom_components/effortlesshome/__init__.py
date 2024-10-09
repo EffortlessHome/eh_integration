@@ -1,24 +1,41 @@
 """The effortlesshome Integration."""
 
 from __future__ import annotations
-import logging
-import bcrypt
-import base64
-import re
 
-from homeassistant.core import (
-    callback,
-)
+import asyncio
+import base64
+import json
+import logging
+import os
+import re
+import socket
+from datetime import timedelta
+from typing import TYPE_CHECKING
+
+import aiohttp
+import async_timeout
+import bcrypt
+import numpy as np
+import yaml
 from homeassistant.components.alarm_control_panel import DOMAIN as PLATFORM
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.recorder.models import state
 from homeassistant.const import (
     ATTR_CODE,
     ATTR_NAME,
 )
-from homeassistant.core import HomeAssistant, asyncio
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.core import (
+    Config,
+    HomeAssistant,
+    ServiceCall,
+    asyncio,
+    callback,
+)
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.discovery import async_load_platform
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
@@ -26,81 +43,49 @@ from homeassistant.helpers.dispatcher import (
 from homeassistant.helpers.service import (
     async_register_admin_service,
 )
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
+from sklearn.cluster import KMeans
+
 from . import const
-from .const import DOMAIN
-from .store import async_get_registry
+from .ai import AIHASSComponent, optimize_home
+from .alarm_control_panel import createalarm
+from .automations import AutomationHandler
+from .binary_sensor import (
+    binarymedalertsensor,
+    renteroccupiedsensor,
+    sleepingsensor,
+    someonehomesensor,
+)
+from .card import async_register_card
+from .const import (
+    CONF_SYSTEMID,
+    CONF_USERNAME,
+    DOMAIN,
+    EH_INITIALIZE_API,
+    EH_SECURITY_API,
+)
+from .deviceclassgroupsync import async_setup_devicegroup
+from .event import EventHandler
+from .lightgroup import async_setup_lightgroup_entry
+from .mqtt import MqttHandler
 from .panel import (
     async_register_panel,
     async_unregister_panel,
 )
-from .card import async_register_card
-from .websockets import async_register_websockets
-from .deviceclassgroupsync import async_setup_devicegroup
-
-from .sensors import (
-    SensorHandler,
-    ATTR_GROUP,
-    ATTR_ENTITIES,
-    ATTR_NEW_ENTITY_ID,
-)
-from .automations import AutomationHandler
-from .mqtt import MqttHandler
-from .event import EventHandler
-
-import asyncio
-import logging
-from datetime import timedelta
-
-import socket
-
-import aiohttp
-import async_timeout
-import json
-
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Config
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.helpers.update_coordinator import UpdateFailed
-from homeassistant.helpers.discovery import async_load_platform
-
-
-from .const import CONF_USERNAME
-from .const import CONF_SYSTEMID
-from .const import DOMAIN
-from .const import EH_INITIALIZE_API
-from .const import EH_SECURITY_API
-
-from homeassistant.core import HomeAssistant, ServiceCall, callback
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.typing import ConfigType
-
-from .binary_sensor import binarymedalertsensor
-from .binary_sensor import sleepingsensor
-from .binary_sensor import someonehomesensor
-from .binary_sensor import renteroccupiedsensor
 from .SecurityAlarmWebhook import SecurityAlarmWebhook
-from .deviceclassgroupsync import async_setup_devicegroup
-from .lightgroup import async_setup_lightgroup_entry
-from .alarm_control_panel import createalarm
-from .ai import optimize_home
-from .ai import AIHASSComponent
+from .sensors import (
+    ATTR_ENTITIES,
+    ATTR_GROUP,
+    ATTR_NEW_ENTITY_ID,
+    SensorHandler,
+)
+from .store import async_get_registry
+from .websockets import async_register_websockets
 
-import os
-import yaml
-
-from homeassistant.components.recorder.models import state
-from homeassistant.util import dt as dt_util
-from datetime import timedelta
-import numpy as np
-from sklearn.cluster import KMeans
-from homeassistant.components.recorder.models import state
-from homeassistant.util import dt as dt_util
-from datetime import timedelta
-from homeassistant.core import HomeAssistant, ServiceCall, callback
-
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -110,7 +95,7 @@ class HASSComponent:
     hass_instance = None
 
     @classmethod
-    def set_hass(cls, hass: HomeAssistant):
+    def set_hass(cls, hass: HomeAssistant) -> None:
         cls.hass_instance = hass
 
     @classmethod
@@ -118,7 +103,7 @@ class HASSComponent:
         return cls.hass_instance
 
 
-async def async_setup(hass, config):
+async def async_setup(hass, config) -> bool:
     """Track states and offer events for sensors."""
     HASSComponent.set_hass(hass)
 
@@ -135,7 +120,7 @@ async def async_setup(hass, config):
     AIHASSComponent.set_hass(hass)
 
     @callback
-    async def createoptimizehomeservice(call: ServiceCall):
+    async def createoptimizehomeservice(call: ServiceCall) -> None:
         await optimize_home(call)
 
     hass.services.async_register(DOMAIN, "createoptimizehomeservice", optimize_home)
@@ -143,7 +128,7 @@ async def async_setup(hass, config):
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool | None:
     """Set up effortlesshome integration from a config entry."""
     session = async_get_clientsession(hass)
 
@@ -167,7 +152,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     result = await initialize_eh(hass, username, systemid, coordinator)
 
     if result is False:
-        return
+        return None
 
     if entry.unique_id is None:
         hass.config_entries.async_update_entry(entry, unique_id=coordinator.id, data={})
@@ -199,7 +184,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     return True
 
 
-async def async_unload_entry(hass, entry):
+async def async_unload_entry(hass, entry) -> bool:
     """Unload effortlesshome config entry."""
     unload_ok = all(
         await asyncio.gather(
@@ -215,7 +200,7 @@ async def async_unload_entry(hass, entry):
     return True
 
 
-async def async_remove_entry(hass, entry):
+async def async_remove_entry(hass, entry) -> None:
     """Remove effortlesshome config entry."""
     async_unregister_panel(hass)
     coordinator = hass.data[const.DOMAIN]["coordinator"]
@@ -226,7 +211,7 @@ async def async_remove_entry(hass, entry):
 class effortlesshomeCoordinator(DataUpdateCoordinator):
     """Define an object to hold effortlesshome device."""
 
-    def __init__(self, hass, session, entry, store):
+    def __init__(self, hass, session, entry, store) -> None:
         """Initialize."""
         self.id = entry.unique_id
         self.hass = hass
@@ -244,7 +229,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         super().__init__(hass, _LOGGER, name=const.DOMAIN)
 
     @callback
-    def setup_alarm_entities(self):
+    def setup_alarm_entities(self) -> None:
         self.hass.data[const.DOMAIN]["sensor_handler"] = SensorHandler(self.hass)
         self.hass.data[const.DOMAIN]["automation_handler"] = AutomationHandler(
             self.hass
@@ -263,7 +248,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
                 self.hass, "effortlesshome_register_master", config["master"]
             )
 
-    async def async_update_config(self, data):
+    async def async_update_config(self, data) -> None:
         if "master" in data:
             old_config = self.store.async_get_config()
             if old_config[const.ATTR_MASTER] != data["master"]:
@@ -287,7 +272,11 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         self.store.async_update_config(data)
         async_dispatcher_send(self.hass, "effortlesshome_config_updated")
 
-    async def async_update_area_config(self, area_id: str = None, data: dict = {}):
+    async def async_update_area_config(
+        self, area_id: str | None = None, data: dict | None = None
+    ) -> None:
+        if data is None:
+            data = {}
         if const.ATTR_REMOVE in data:
             # delete an area
             res = self.store.async_get_area(area_id)
@@ -296,7 +285,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
             sensors = self.store.async_get_sensors()
             sensors = dict(filter(lambda el: el[1]["area"] == area_id, sensors.items()))
             if sensors:
-                for el in sensors.keys():
+                for el in sensors:
                     self.store.async_delete_sensor(el)
                 async_dispatcher_send(self.hass, "effortlesshome_sensors_updated")
 
@@ -341,7 +330,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
                     self.hass, "effortlesshome_register_master", config["master"]
                 )
 
-    def async_update_sensor_config(self, entity_id: str, data: dict):
+    def async_update_sensor_config(self, entity_id: str, data: dict) -> None:
         group = None
         if ATTR_GROUP in data:
             group = data[ATTR_GROUP]
@@ -368,12 +357,16 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
 
         async_dispatcher_send(self.hass, "effortlesshome_sensors_updated")
 
-    def async_update_user_config(self, user_id: str = None, data: dict = {}):
+    def async_update_user_config(
+        self, user_id: str | None = None, data: dict | None = None
+    ) -> bool | None:
+        if data is None:
+            data = {}
         if const.ATTR_REMOVE in data:
             self.store.async_delete_user(user_id)
-            return
+            return None
 
-        if ATTR_CODE in data and data[ATTR_CODE]:
+        if data.get(ATTR_CODE):
             data[const.ATTR_CODE_FORMAT] = (
                 "number" if data[ATTR_CODE].isdigit() else "text"
             )
@@ -386,21 +379,19 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
 
         if not user_id:
             self.store.async_create_user(data)
-        else:
-            if ATTR_CODE in data:
-                if const.ATTR_OLD_CODE not in data:
-                    return False
-                elif not self.async_authenticate_user(
-                    data[const.ATTR_OLD_CODE], user_id
-                ):
-                    return False
-                else:
-                    del data[const.ATTR_OLD_CODE]
-                    self.store.async_update_user(user_id, data)
-            else:
-                self.store.async_update_user(user_id, data)
+            return None
+        if ATTR_CODE in data:
+            if const.ATTR_OLD_CODE not in data or not self.async_authenticate_user(
+                data[const.ATTR_OLD_CODE], user_id
+            ):
+                return False
+            del data[const.ATTR_OLD_CODE]
+            self.store.async_update_user(user_id, data)
+            return None
+        self.store.async_update_user(user_id, data)
+        return None
 
-    def async_authenticate_user(self, code: str, user_id: str = None):
+    def async_authenticate_user(self, code: str, user_id: str | None = None):
         if not user_id:
             users = self.store.async_get_users()
         else:
@@ -409,18 +400,20 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         for user_id, user in users.items():
             if not user[const.ATTR_ENABLED]:
                 continue
-            elif not user[ATTR_CODE] and not code:
+            if not user[ATTR_CODE] and not code:
                 return user
-            elif user[ATTR_CODE]:
+            if user[ATTR_CODE]:
                 hash = base64.b64decode(user[ATTR_CODE])
                 if bcrypt.checkpw(code.encode("utf-8"), hash):
                     return user
 
-        return
+        return None
 
     def async_update_automation_config(
-        self, automation_id: str = None, data: dict = {}
-    ):
+        self, automation_id: str | None = None, data: dict | None = None
+    ) -> None:
+        if data is None:
+            data = {}
         if const.ATTR_REMOVE in data:
             self.store.async_delete_automation(automation_id)
         elif not automation_id:
@@ -430,10 +423,10 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
 
         async_dispatcher_send(self.hass, "effortlesshome_automations_updated")
 
-    def register_events(self):
+    def register_events(self) -> None:
         # handle push notifications with action buttons
         @callback
-        async def async_handle_push_event(event):
+        async def async_handle_push_event(event) -> None:
             if not event.data:
                 return
             action = (
@@ -448,7 +441,9 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
             if self.hass.data[const.DOMAIN]["master"]:
                 alarm_entity = self.hass.data[const.DOMAIN]["master"]
             elif len(self.hass.data[const.DOMAIN]["areas"]) == 1:
-                alarm_entity = list(self.hass.data[const.DOMAIN]["areas"].values())[0]
+                alarm_entity = next(
+                    iter(self.hass.data[const.DOMAIN]["areas"].values())
+                )
             else:
                 _LOGGER.info(
                     "Cannot process the push action, since there are multiple areas."
@@ -485,16 +480,14 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
                 _LOGGER.info("Received request for disarming")
                 alarm_entity.alarm_disarm(None, skip_code=True)
             else:
-                _LOGGER.info(
-                    "Received request for arming with mode {}".format(arm_mode)
-                )
+                _LOGGER.info(f"Received request for arming with mode {arm_mode}")
                 alarm_entity.async_handle_arm_request(arm_mode, skip_code=True)
 
         self._subscriptions.append(
             self.hass.bus.async_listen(const.PUSH_EVENT, async_handle_push_event)
         )
 
-    async def async_remove_entity(self, area_id: str):
+    async def async_remove_entity(self, area_id: str) -> None:
         entity_registry = er.async_get(self.hass)
         if area_id == "master":
             entity = self.hass.data[const.DOMAIN]["master"]
@@ -506,7 +499,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
             self.hass.data[const.DOMAIN]["areas"].pop(area_id, None)
 
     def async_get_sensor_groups(self):
-        """fetch a list of sensor groups (websocket API hook)"""
+        """Fetch a list of sensor groups (websocket API hook)."""
         groups = self.store.async_get_sensor_groups()
         return list(groups.values())
 
@@ -515,7 +508,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         result = next((el for el in groups if entity_id in el[ATTR_ENTITIES]), None)
         return result["group_id"] if result else None
 
-    def assign_sensor_to_group(self, entity_id: str, group_id: str):
+    def assign_sensor_to_group(self, entity_id: str, group_id: str) -> None:
         updated = False
         old_group = self.async_get_group_for_sensor(entity_id)
         if old_group and group_id != old_group:
@@ -534,7 +527,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
             group = self.store.async_get_sensor_group(group_id)
             if not group:
                 _LOGGER.error(
-                    "Failed to assign entity {} to group {}".format(entity_id, group_id)
+                    f"Failed to assign entity {entity_id} to group {group_id}"
                 )
             elif entity_id not in group[ATTR_ENTITIES]:
                 self.store.async_update_sensor_group(
@@ -544,7 +537,11 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         if updated:
             async_dispatcher_send(self.hass, "effortlesshome_sensors_updated")
 
-    def async_update_sensor_group_config(self, group_id: str = None, data: dict = {}):
+    def async_update_sensor_group_config(
+        self, group_id: str | None = None, data: dict | None = None
+    ) -> None:
+        if data is None:
+            data = {}
         if const.ATTR_REMOVE in data:
             self.store.async_delete_sensor_group(group_id)
         elif not group_id:
@@ -554,9 +551,8 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
 
         async_dispatcher_send(self.hass, "effortlesshome_sensors_updated")
 
-    async def async_unload(self):
-        """remove all effortlesshome objects"""
-
+    async def async_unload(self) -> None:
+        """Remove all effortlesshome objects."""
         # remove alarm_control_panel entities
         areas = list(self.hass.data[const.DOMAIN]["areas"].keys())
         for area in areas:
@@ -573,21 +569,20 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         while len(self._subscriptions):
             self._subscriptions.pop()()
 
-    async def async_delete_config(self):
-        """wipe effortlesshome storage"""
+    async def async_delete_config(self) -> None:
+        """Wipe effortlesshome storage."""
         await self.store.async_delete()
 
 
 @callback
-def register_services(hass):
+def register_services(hass) -> None:
     """Register services used by effortlesshome component."""
-
     coordinator = hass.data[const.DOMAIN]["coordinator"]
 
-    async def async_srv_toggle_user(call):
-        """Enable a user by service call"""
+    async def async_srv_toggle_user(call) -> None:
+        """Enable a user by service call."""
         name = call.data.get(ATTR_NAME)
-        enable = True if call.service == const.SERVICE_ENABLE_USER else False
+        enable = call.service == const.SERVICE_ENABLE_USER
         users = coordinator.store.async_get_users()
         user = next(
             (item for item in list(users.values()) if item[ATTR_NAME] == name), None
@@ -624,37 +619,37 @@ def register_services(hass):
 
 
 @callback
-def register_security_services(hass):
+def register_security_services(hass) -> None:
     @callback
-    async def createeventservice(call: ServiceCall):
+    async def createeventservice(call: ServiceCall) -> None:
         await createevent(call)
 
     @callback
-    async def cancelalarmservice(call: ServiceCall):
+    async def cancelalarmservice(call: ServiceCall) -> None:
         await cancelalarm(call)
 
     @callback
-    async def getalarmstatusservice(call: ServiceCall):
+    async def getalarmstatusservice(call: ServiceCall) -> None:
         await getalarmstatus(call)
 
     @callback
-    async def getplanstatusservice(call: ServiceCall):
+    async def getplanstatusservice(call: ServiceCall) -> None:
         await getPlanStatus(call)
 
     @callback
-    async def changemedicalalertstateservice(call: ServiceCall):
+    async def changemedicalalertstateservice(call: ServiceCall) -> None:
         await changemedicalalertstate(call)
 
     @callback
-    async def changegoodnightranfordaystateservice(call: ServiceCall):
+    async def changegoodnightranfordaystateservice(call: ServiceCall) -> None:
         await changegoodnightranfordaystate(call)
 
     @callback
-    async def changerenteroccupiedstateservice(call: ServiceCall):
+    async def changerenteroccupiedstateservice(call: ServiceCall) -> None:
         await changerenteroccupiedstate(call)
 
     @callback
-    async def confirmpendingalarmservice(call: ServiceCall):
+    async def confirmpendingalarmservice(call: ServiceCall) -> None:
         await createalarm(call)
 
     # Register our service with Home Assistant.
@@ -675,8 +670,6 @@ def register_security_services(hass):
 
 
 async def initialize_eh(hass: HomeAssistant, username, systemid, coordinator) -> bool:
-    print("Calling Initialize EH API")
-
     url = EH_INITIALIZE_API + username + "/" + systemid
     headers = {
         "Accept": "application/json, text/html",
@@ -710,32 +703,31 @@ async def initialize_eh(hass: HomeAssistant, username, systemid, coordinator) ->
                 }
 
                 return True
-            else:
-                return False
+            return False
 
 
-async def changemedicalalertstate(calldata):
+async def changemedicalalertstate(calldata) -> None:
     _LOGGER.debug("change medical alert calldata =" + str(calldata.data))
 
     hass = HASSComponent.get_hass()
     hass.data[DOMAIN]["MedicalAlertTriggered"] = calldata.data["newstate"]
 
 
-async def changegoodnightranfordaystate(calldata):
+async def changegoodnightranfordaystate(calldata) -> None:
     _LOGGER.debug("change goodnight ran for day calldata =" + str(calldata.data))
 
     hass = HASSComponent.get_hass()
     hass.data[DOMAIN]["GoodnightRanForDay"] = calldata.data["newstate"]
 
 
-async def changerenteroccupiedstate(calldata):
+async def changerenteroccupiedstate(calldata) -> None:
     _LOGGER.debug("change renter occupied state calldata =" + str(calldata.data))
 
     hass = HASSComponent.get_hass()
     hass.data[DOMAIN]["IsRenterOccupied"] = calldata.data["newstate"]
 
 
-async def createevent(calldata):
+async def createevent(calldata) -> None:
     _LOGGER.debug("create event calldata =" + str(calldata.data))
 
     hass = HASSComponent.get_hass()
@@ -791,16 +783,20 @@ async def createevent_internal(sensor_device_name, sensor_device_class):
 
             _LOGGER.info("Calling create event API with payload: %s", jsonpayload)
 
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
                     url, headers=headers, json=json.loads(jsonpayload)
-                ) as response:
-                    _LOGGER.debug("API response status: %s", response.status)
-                    _LOGGER.debug("API response headers: %s", response.headers)
-                    content = await response.text()
-                    _LOGGER.debug("API response content: %s", content)
+                ) as response,
+            ):
+                _LOGGER.debug("API response status: %s", response.status)
+                _LOGGER.debug("API response headers: %s", response.headers)
+                content = await response.text()
+                _LOGGER.debug("API response content: %s", content)
 
-                    return content
+                return content
+        return None
+    return None
 
 
 async def cancelalarm(calldata):
@@ -837,6 +833,8 @@ async def cancelalarm(calldata):
                     _LOGGER.debug("API response content: %s", content)
 
                     return content
+        return None
+    return None
 
 
 async def getalarmstatus(calldata):
@@ -875,6 +873,7 @@ async def getalarmstatus(calldata):
                     hass.states.async_set("effortlesshome.alarmstatus", alarmstatus)
 
                 return content
+    return None
 
 
 async def getPlanStatus(calldata):

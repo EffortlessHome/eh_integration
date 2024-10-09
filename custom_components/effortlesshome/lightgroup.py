@@ -1,23 +1,21 @@
-from homeassistant.components.group import Group
-from homeassistant.helpers.entity import async_generate_entity_id
-from homeassistant.const import ENTITY_MATCH_ALL
-
 import logging
-from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.helpers.template import Template
+
+from homeassistant.components.group import Group
+from homeassistant.const import ENTITY_MATCH_ALL
+from homeassistant.helpers.entity import async_generate_entity_id
 
 _LOGGER = logging.getLogger(__name__)
 
-from .const import CONF_USERNAME
-from .const import CONF_SYSTEMID
-from .const import DOMAIN
 
 async def create_light_group(hass, group_name):
     """Create a light group programmatically by automatically finding all light entities."""
-    
     # Find all light entities in Home Assistant
     all_entities = hass.states.async_all()
-    light_entities = [entity.entity_id for entity in all_entities if entity.entity_id.startswith("light.")]
+    light_entities = [
+        entity.entity_id
+        for entity in all_entities
+        if entity.entity_id.startswith("light.")
+    ]
 
     if not light_entities:
         # If no light entities are found, log a warning and return
@@ -44,8 +42,9 @@ async def create_light_group(hass, group_name):
 
     return entity_id
 
+
 # Example usage inside a custom integration
-async def async_setup_lightgroup_entry(hass, config_entry):
+async def async_setup_lightgroup_entry(hass, config_entry) -> bool:
     # Call the function to create a light group with all discovered lights
     await create_light_group(hass, "all_lights_group")
 

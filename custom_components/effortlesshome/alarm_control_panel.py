@@ -1,120 +1,101 @@
 """Initialization of effortlesshome alarm_control_panel platform."""
 
+import asyncio
 import datetime
-import logging
 import functools
+import json
+import logging
 import operator
 from abc import abstractmethod
 
+import aiohttp
+import homeassistant.util.dt as dt_util
+from homeassistant.components.alarm_control_panel import (
+    ATTR_CODE_ARM_REQUIRED,
+    AlarmControlPanelEntity,
+    AlarmControlPanelEntityFeature,
+)
+from homeassistant.components.alarm_control_panel import (
+    DOMAIN as PLATFORM,
+)
+from homeassistant.const import (
+    ATTR_CODE_FORMAT,
+    ATTR_NAME,
+    STATE_ALARM_ARMED_AWAY,
+    STATE_ALARM_ARMED_CUSTOM_BYPASS,
+    STATE_ALARM_ARMED_HOME,
+    STATE_ALARM_ARMED_NIGHT,
+    STATE_ALARM_ARMED_VACATION,
+    STATE_ALARM_ARMING,
+    STATE_ALARM_DISARMED,
+    STATE_ALARM_PENDING,
+    STATE_ALARM_TRIGGERED,
+)
 from homeassistant.core import (
     HomeAssistant,
     callback,
 )
-from homeassistant.helpers.event import (
-    async_track_point_in_time,
-    async_call_later,
-)
+from homeassistant.helpers import entity_platform
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
     dispatcher_send,
 )
-from homeassistant.helpers import entity_platform
+from homeassistant.helpers.event import (
+    async_call_later,
+    async_track_point_in_time,
+)
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import slugify
-import homeassistant.util.dt as dt_util
-from homeassistant.components.alarm_control_panel import (
-    AlarmControlPanelEntity,
-    ATTR_CODE_ARM_REQUIRED,
-    DOMAIN as PLATFORM,
-    AlarmControlPanelEntityFeature,
-)
 
-from homeassistant.const import (
-    ATTR_CODE_FORMAT,
-    STATE_ALARM_ARMED_AWAY,
-    STATE_ALARM_ARMED_HOME,
-    STATE_ALARM_ARMED_NIGHT,
-    STATE_ALARM_ARMED_CUSTOM_BYPASS,
-    STATE_ALARM_ARMED_VACATION,
-    STATE_ALARM_DISARMED,
-    STATE_ALARM_TRIGGERED,
-    STATE_ALARM_PENDING,
-    STATE_ALARM_ARMING,
-    ATTR_NAME,
-)
 from . import const
-
-import socket
-
-import aiohttp
-import async_timeout
-import json
-import time
-
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Config
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.helpers.update_coordinator import UpdateFailed
-
-from .const import CONF_USERNAME
-from .const import DOMAIN
-from .const import EH_SECURITY_API
-
-from homeassistant.core import HomeAssistant, ServiceCall, callback
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.typing import ConfigType
-
-import os
-import yaml
-import asyncio
+from .const import DOMAIN, EH_SECURITY_API
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class HASSComponent:
     # Class-level property to hold the hass instance
     hass_instance = None
 
     @classmethod
-    def set_hass(cls, hass: HomeAssistant):
+    def set_hass(cls, hass: HomeAssistant) -> None:
         cls.hass_instance = hass
 
     @classmethod
     def get_hass(cls):
         return cls.hass_instance
-    
+
+
 class PendingAlarm:
-    def __init__(self, open_sensors: dict, sensor_device_class: str, sensor_device_name: str):
+    def __init__(
+        self, open_sensors: dict, sensor_device_class: str, sensor_device_name: str
+    ) -> None:
         # Initialize the class with provided parameters
         self.open_sensors = open_sensors
         self.sensor_device_class = sensor_device_class
         self.sensor_device_name = sensor_device_name
 
     # method to display the alarm details
-    def display_alarm_info(self):
-        print(f"Sensor Device Class: {self.sensor_device_class}")
-        print(f"Sensor Device Name: {self.sensor_device_name}")
-        print("Open Sensors:")
-        for sensor, status in self.open_sensors.items():
-            print(f" - {sensor}: {status}")
+    def display_alarm_info(self) -> None:
+        for _sensor, _status in self.open_sensors.items():
+            pass
+
 
 class PendingAlarmComponent:
     # Class-level property to hold the pending alarm instance
     _pendingalarm = None
 
     @classmethod
-    def set_pendingalarm(cls, alarm: PendingAlarm):
+    def set_pendingalarm(cls, alarm: PendingAlarm) -> None:
         cls._pendingalarm = alarm
 
     @classmethod
     def get_pendingalarm(cls):
         return cls._pendingalarm
 
-async def creatependingalarm(open_sensors: dict = None):
 
+async def creatependingalarm(open_sensors: dict | None = None) -> None:
     _LOGGER.debug("in create pending alarm")
     hass = HASSComponent.get_hass()
 
@@ -124,8 +105,8 @@ async def creatependingalarm(open_sensors: dict = None):
     sensor_device_class = None
     sensor_device_name = None
 
-    if open_sensors != None:
-        for entity_id, status in open_sensors.items():
+    if open_sensors is not None:
+        for entity_id in open_sensors:
             devicestate = hass.states.get(entity_id)
             if devicestate and devicestate.attributes.get("friendly_name"):
                 sensor_device_name = devicestate.attributes["friendly_name"]
@@ -147,14 +128,11 @@ async def creatependingalarm(open_sensors: dict = None):
     hass.states.async_set("effortlesshome.alarmcreatemessage", "pending")
     hass.states.async_set("effortlesshome.alarmownerid", "pending")
     hass.states.async_set("effortlesshome.alarmstatus", "PENDING")
-    hass.states.async_set(
-        "effortlesshome.alarmlasteventtype", "alarm.status.pending"
-    )
+    hass.states.async_set("effortlesshome.alarmlasteventtype", "alarm.status.pending")
 
 
-async def createalarm(calldata):
+async def createalarm(calldata) -> None:
     """Call the API to create alarm."""
-
     _LOGGER.debug("in create alarm")
     hass = HASSComponent.get_hass()
 
@@ -163,8 +141,7 @@ async def createalarm(calldata):
     if pendingAlarm is None:
         _LOGGER.debug("No Pending Alarm Found")
         return
-    else:
-        _LOGGER.debug(pendingAlarm.display_alarm_info())
+    _LOGGER.debug(pendingAlarm.display_alarm_info())
 
     sensor_device_class = pendingAlarm.sensor_device_class
     sensor_device_name = pendingAlarm.sensor_device_name
@@ -225,7 +202,6 @@ async def createalarm(calldata):
 
 async def createsecurityalarm(sensor_device_class: str, sensor_device_name: str):
     """Call the API to create a security alarm."""
-
     _LOGGER.debug("in create security alarm")
 
     hass = HASSComponent.get_hass()
@@ -250,16 +226,15 @@ async def createsecurityalarm(sensor_device_class: str, sensor_device_name: str)
 
     _LOGGER.debug("Calling create alarm API with payload: %s", payload)
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            url, headers=headers, json=json.loads(payload)
-        ) as response:
-            _LOGGER.debug("API response status: %s", response.status)
-            _LOGGER.debug("API response headers: %s", response.headers)
-            content = await response.text()
-            _LOGGER.debug("API response content: %s", content)
+    async with aiohttp.ClientSession() as session, session.post(
+        url, headers=headers, json=json.loads(payload)
+    ) as response:
+        _LOGGER.debug("API response status: %s", response.status)
+        _LOGGER.debug("API response headers: %s", response.headers)
+        content = await response.text()
+        _LOGGER.debug("API response content: %s", content)
 
-            return content
+        return content
 
 
 async def createmonitoringalarm(sensor_device_class: str, sensor_device_name: str):
@@ -287,16 +262,15 @@ async def createmonitoringalarm(sensor_device_class: str, sensor_device_name: st
 
     _LOGGER.info("Calling create monitoring alarm API with payload: %s", payload)
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            url, headers=headers, json=json.loads(payload)
-        ) as response:
-            _LOGGER.debug("API response status: %s", response.status)
-            _LOGGER.debug("API response headers: %s", response.headers)
-            content = await response.text()
-            _LOGGER.debug("API response content: %s", content)
+    async with aiohttp.ClientSession() as session, session.post(
+        url, headers=headers, json=json.loads(payload)
+    ) as response:
+        _LOGGER.debug("API response status: %s", response.status)
+        _LOGGER.debug("API response headers: %s", response.headers)
+        content = await response.text()
+        _LOGGER.debug("API response content: %s", content)
 
-            return content
+        return content
 
 
 async def createmedicalalarm(sensor_device_class: str, sensor_device_name: str):
@@ -324,16 +298,15 @@ async def createmedicalalarm(sensor_device_class: str, sensor_device_name: str):
 
     _LOGGER.info("Calling create medical alert alarm API with payload: %s", payload)
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            url, headers=headers, json=json.loads(payload)
-        ) as response:
-            _LOGGER.debug("API response status: %s", response.status)
-            _LOGGER.debug("API response headers: %s", response.headers)
-            content = await response.text()
-            _LOGGER.debug("API response content: %s", content)
+    async with aiohttp.ClientSession() as session, session.post(
+        url, headers=headers, json=json.loads(payload)
+    ) as response:
+        _LOGGER.debug("API response status: %s", response.status)
+        _LOGGER.debug("API response headers: %s", response.headers)
+        content = await response.text()
+        _LOGGER.debug("API response content: %s", content)
 
-            return content
+        return content
 
 
 async def cancelalarm():
@@ -355,11 +328,10 @@ async def cancelalarm():
             hass.states.async_set("effortlesshome.alarmcreatemessage", "")
             hass.states.async_set("effortlesshome.alarmownerid", "")
             hass.states.async_set("effortlesshome.alarmstatus", "")
-            hass.states.async_set(
-                "effortlesshome.alarmlasteventtype", ""
-            )
+            hass.states.async_set("effortlesshome.alarmlasteventtype", "")
+            return None
 
-        elif alarmstatus == "ACTIVE":
+        if alarmstatus == "ACTIVE":
             alarmid = hass.states.get("effortlesshome.alarm_id").state
             _LOGGER.debug("alarm id =" + alarmid)
 
@@ -394,6 +366,8 @@ async def cancelalarm():
                         hass.states.async_set("effortlesshome.alarmstatus", alarmstatus)
 
                     return content
+        return None
+    return None
 
 
 async def getalarmstatus():
@@ -408,8 +382,8 @@ async def getalarmstatus():
         alarmid = hass.states.get("effortlesshome.alarm_id").state
 
         if alarmid == "pending":
-            return
-    
+            return None
+
         systemid = hass.data[const.DOMAIN]["systemid"]
         eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]
 
@@ -436,29 +410,30 @@ async def getalarmstatus():
                     hass.states.async_set("effortlesshome.alarmstatus", alarmstatus)
 
                 return content
+    return None
 
 
 #######################
 
 
-async def async_setup(hass, config):
+async def async_setup(hass, config) -> bool:
     """Track states and offer events for sensors."""
     HASSComponent.set_hass(hass)
     return True
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None) -> bool:
     """Set up the platform from config."""
     HASSComponent.set_hass(hass)
     return True
 
 
-async def async_setup_entry(hass, config_entry, async_add_devices):
+async def async_setup_entry(hass, config_entry, async_add_devices) -> None:
     """Set up the effortlesshome entities."""
     HASSComponent.set_hass(hass)
 
     @callback
-    def async_add_alarm_entity(config: dict):
+    def async_add_alarm_entity(config: dict) -> None:
         """Add each entity as Alarm Control Panel."""
         entity_id = "{}.{}".format(PLATFORM, slugify(config["name"]))
 
@@ -476,7 +451,7 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     )
 
     @callback
-    def async_add_alarm_master(config: dict):
+    def async_add_alarm_master(config: dict) -> None:
         """Add each entity as Alarm Control Panel."""
         entity_id = "{}.{}".format(PLATFORM, slugify(config["name"]))
 
@@ -539,7 +514,7 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
         }
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str:
         """Return a unique ID to use for this entity."""
         return f"{self.entity_id}"
 
@@ -556,20 +531,19 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
     @property
     def code_format(self):
         """Return whether code consists of digits or characters."""
-
-        if self._state == STATE_ALARM_DISARMED and self.code_arm_required:
-            return self._config[ATTR_CODE_FORMAT]
-
-        elif (
-            self._state != STATE_ALARM_DISARMED
-            and self._config
-            and const.ATTR_CODE_DISARM_REQUIRED in self._config
-            and self._config[const.ATTR_CODE_DISARM_REQUIRED]
+        if (
+            self._state == STATE_ALARM_DISARMED
+            and self.code_arm_required
+            or (
+                self._state != STATE_ALARM_DISARMED
+                and self._config
+                and const.ATTR_CODE_DISARM_REQUIRED in self._config
+                and self._config[const.ATTR_CODE_DISARM_REQUIRED]
+            )
         ):
             return self._config[ATTR_CODE_FORMAT]
 
-        else:
-            return None
+        return None
 
     @property
     def changed_by(self):
@@ -591,10 +565,9 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
         """Whether the code is required for arm actions."""
         if not self._config or ATTR_CODE_ARM_REQUIRED not in self._config:
             return True  # assume code is needed (conservative approach)
-        elif self._state != STATE_ALARM_DISARMED:
+        if self._state != STATE_ALARM_DISARMED:
             return self._config[const.ATTR_CODE_MODE_CHANGE_REQUIRED]
-        else:
-            return self._config[ATTR_CODE_ARM_REQUIRED]
+        return self._config[ATTR_CODE_ARM_REQUIRED]
 
     @property
     def arm_mode(self):
@@ -606,11 +579,10 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
         """Get open sensors."""
         if not self._open_sensors:
             return None
-        else:
-            return self._open_sensors
+        return self._open_sensors
 
     @open_sensors.setter
-    def open_sensors(self, value):
+    def open_sensors(self, value) -> None:
         """Set open_sensors sensors."""
         if type(value) is dict:
             self._open_sensors = value
@@ -622,11 +594,10 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
         """Get bypassed sensors."""
         if not self._bypassed_sensors:
             return None
-        else:
-            return self._bypassed_sensors
+        return self._bypassed_sensors
 
     @bypassed_sensors.setter
-    def bypassed_sensors(self, value):
+    def bypassed_sensors(self, value) -> None:
         """Set bypassed sensors."""
         if type(value) is list:
             self._bypassed_sensors = value
@@ -639,7 +610,7 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
         return self._delay
 
     @delay.setter
-    def delay(self, value):
+    def delay(self, value) -> None:
         """Set delay."""
         if type(value) is int:
             self._delay = value
@@ -653,7 +624,6 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
     @property
     def extra_state_attributes(self):
         """Return the data of the entity."""
-
         return {
             "arm_mode": self.arm_mode,
             "open_sensors": self.open_sensors,
@@ -663,35 +633,30 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
 
     def _validate_code(self, code, to_state):
         """Validate given code."""
-
         if (
-            to_state == STATE_ALARM_DISARMED
-            and not self._config[const.ATTR_CODE_DISARM_REQUIRED]
+            (
+                to_state == STATE_ALARM_DISARMED
+                and not self._config[const.ATTR_CODE_DISARM_REQUIRED]
+            )
+            or (
+                to_state != STATE_ALARM_DISARMED
+                and self._state == STATE_ALARM_DISARMED
+                and not self._config[ATTR_CODE_ARM_REQUIRED]
+            )
+            or (
+                STATE_ALARM_DISARMED not in (to_state, self._state) and not self._config[const.ATTR_CODE_MODE_CHANGE_REQUIRED]
+            )
         ):
             self._changed_by = None
             return (True, None)
-        elif (
-            to_state != STATE_ALARM_DISARMED
-            and self._state == STATE_ALARM_DISARMED
-            and not self._config[ATTR_CODE_ARM_REQUIRED]
-        ):
-            self._changed_by = None
-            return (True, None)
-        elif (
-            to_state != STATE_ALARM_DISARMED
-            and self._state != STATE_ALARM_DISARMED
-            and not self._config[const.ATTR_CODE_MODE_CHANGE_REQUIRED]
-        ):
-            self._changed_by = None
-            return (True, None)
-        elif not code or len(code) < 1:
+        if not code or len(code) < 1:
             return (False, const.EVENT_NO_CODE_PROVIDED)
 
         res = self.hass.data[const.DOMAIN]["coordinator"].async_authenticate_user(code)
         if not res:
             # wrong code was entered
             return (False, const.EVENT_INVALID_CODE_PROVIDED)
-        elif res[const.ATTR_AREA_LIMIT] and not all(
+        if res[const.ATTR_AREA_LIMIT] and not all(
             area in res[const.ATTR_AREA_LIMIT]
             for area in (
                 [self.area_id]
@@ -701,36 +666,31 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
         ):
             # user is not allowed to operate this area
             _LOGGER.debug(
-                "User {} has no permission to arm/disarm this area.".format(
-                    res[ATTR_NAME]
-                )
+                f"User {res[ATTR_NAME]} has no permission to arm/disarm this area."
             )
             return (False, const.EVENT_INVALID_CODE_PROVIDED)
-        elif to_state == STATE_ALARM_DISARMED and not res["can_disarm"]:
+        if to_state == STATE_ALARM_DISARMED and not res["can_disarm"]:
             # user is not allowed to disarm the alarm
             _LOGGER.debug(
-                "User {} has no permission to disarm the alarm.".format(res[ATTR_NAME])
+                f"User {res[ATTR_NAME]} has no permission to disarm the alarm."
             )
             return (False, const.EVENT_INVALID_CODE_PROVIDED)
-        elif to_state in const.ARM_MODES and not res["can_arm"]:
+        if to_state in const.ARM_MODES and not res["can_arm"]:
             # user is not allowed to arm the alarm
-            _LOGGER.debug(
-                "User {} has no permission to arm the alarm.".format(res[ATTR_NAME])
-            )
+            _LOGGER.debug(f"User {res[ATTR_NAME]} has no permission to arm the alarm.")
             return (False, const.EVENT_INVALID_CODE_PROVIDED)
-        else:
-            self._changed_by = res[ATTR_NAME]
-            return (True, res)
+        self._changed_by = res[ATTR_NAME]
+        return (True, res)
 
     @callback
-    def async_service_disarm_handler(self, code, context_id=None):
-        """handle external disarm request from effortlesshome.disarm service"""
+    def async_service_disarm_handler(self, code, context_id=None) -> None:
+        """Handle external disarm request from effortlesshome.disarm service."""
         _LOGGER.debug("Service effortlesshome.disarm was called")
 
         self.alarm_disarm(code=code, context_id=context_id)
 
     @callback
-    def alarm_disarm(self, code, **kwargs):
+    def alarm_disarm(self, code, **kwargs) -> bool | None:
         """Send disarm command."""
         _LOGGER.debug("alarm_disarm")
         skip_code = kwargs.get("skip_code", False)
@@ -743,9 +703,7 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
                 )
             else:
                 _LOGGER.warning(
-                    "Cannot go to state {} from state {}.".format(
-                        STATE_ALARM_DISARMED, self._state
-                    )
+                    f"Cannot go to state {STATE_ALARM_DISARMED} from state {self._state}."
                 )
             dispatcher_send(
                 self.hass,
@@ -758,7 +716,7 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
                     const.ATTR_CONTEXT_ID: context_id,
                 },
             )
-            return
+            return None
         (res, info) = self._validate_code(code, STATE_ALARM_DISARMED)
         if not res and not skip_code:
             dispatcher_send(
@@ -772,32 +730,29 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
                 },
             )
             _LOGGER.warning("Wrong code provided.")
-            return
+            return None
+        self.open_sensors = None
+        self.bypassed_sensors = None
+        self.async_update_state(STATE_ALARM_DISARMED)
+        if self.changed_by:
+            _LOGGER.info(f"Alarm '{self.name}' is disarmed by {self.changed_by}.")
         else:
-            self.open_sensors = None
-            self.bypassed_sensors = None
-            self.async_update_state(STATE_ALARM_DISARMED)
-            if self.changed_by:
-                _LOGGER.info(
-                    "Alarm '{}' is disarmed by {}.".format(self.name, self.changed_by)
-                )
-            else:
-                _LOGGER.info("Alarm '{}' is disarmed.".format(self.name))
+            _LOGGER.info(f"Alarm '{self.name}' is disarmed.")
 
-            result = asyncio.run(cancelalarm())
+        asyncio.run(cancelalarm())
 
-            dispatcher_send(
-                self.hass,
-                "effortlesshome_event",
-                const.EVENT_DISARM,
-                self.area_id,
-                {const.ATTR_CONTEXT_ID: context_id},
-            )
-            return True
+        dispatcher_send(
+            self.hass,
+            "effortlesshome_event",
+            const.EVENT_DISARM,
+            self.area_id,
+            {const.ATTR_CONTEXT_ID: context_id},
+        )
+        return True
 
     @callback
-    def async_service_arm_handler(self, code, mode, skip_delay, force, context_id=None):
-        """handle external arm request from effortlesshome.arm service"""
+    def async_service_arm_handler(self, code, mode, skip_delay, force, context_id=None) -> None:
+        """Handle external arm request from effortlesshome.arm service."""
         _LOGGER.debug("Service effortlesshome.arm was called")
 
         if mode in const.ARM_MODE_TO_STATE:
@@ -812,8 +767,8 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
         )
 
     @callback
-    def async_handle_arm_request(self, arm_mode, **kwargs):
-        """check if conditions are met for starting arm procedure"""
+    def async_handle_arm_request(self, arm_mode, **kwargs) -> bool | None:
+        """Check if conditions are met for starting arm procedure."""
         code = kwargs.get(const.CONF_CODE, "")
         skip_code = kwargs.get("skip_code", False)
         skip_delay = kwargs.get(const.ATTR_SKIP_DELAY, False)
@@ -835,10 +790,10 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
             elif not (
                 const.MODES_TO_SUPPORTED_FEATURES[arm_mode] & self.supported_features
             ):
-                _LOGGER.warning("Mode {} is not supported, ignoring.".format(arm_mode))
+                _LOGGER.warning(f"Mode {arm_mode} is not supported, ignoring.")
             else:
                 _LOGGER.warning(
-                    "Cannot go to state {} from state {}.".format(arm_mode, self._state)
+                    f"Cannot go to state {arm_mode} from state {self._state}."
                 )
             dispatcher_send(
                 self.hass,
@@ -852,10 +807,8 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
                 },
             )
             return False
-        elif self._state in const.ARM_MODES and self._arm_mode == arm_mode:
-            _LOGGER.debug(
-                "Alarm is already set to {}, ignoring command.".format(arm_mode)
-            )
+        if self._state in const.ARM_MODES and self._arm_mode == arm_mode:
+            _LOGGER.debug(f"Alarm is already set to {arm_mode}, ignoring command.")
             return False
 
         if not skip_code:
@@ -876,7 +829,7 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
                     self.open_sensors = None
                     self.schedule_update_ha_state()
                 return False
-            elif info and info[const.ATTR_IS_OVERRIDE_CODE]:
+            if info and info[const.ATTR_IS_OVERRIDE_CODE]:
                 bypass_open_sensors = True
         else:
             self._changed_by = None
@@ -895,20 +848,21 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
             bypass_open_sensors=bypass_open_sensors,
             context_id=context_id,
         )
+        return None
 
     @abstractmethod
     @callback
-    def async_update_state(self, state: str = None) -> None:
-        """update the state or refresh state attributes"""
+    def async_update_state(self, state: str | None = None) -> None:
+        """Update the state or refresh state attributes."""
 
     @abstractmethod
     @callback
-    def async_trigger(self, skip_delay: bool = False, open_sensors: dict = None):
+    def async_trigger(self, skip_delay: bool = False, open_sensors: dict | None = None):
         """Trigger the alarm."""
 
     async def async_alarm_arm_away(
         self, code=None, skip_code=False, bypass_open_sensors=False, skip_delay=False
-    ):
+    ) -> None:
         """Send arm away command."""
         _LOGGER.debug("alarm_arm_away")
         self.async_handle_arm_request(
@@ -921,7 +875,7 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
 
     async def async_alarm_arm_home(
         self, code=None, skip_code=False, bypass_open_sensors=False, skip_delay=False
-    ):
+    ) -> None:
         """Send arm home command."""
         _LOGGER.debug("alarm_arm_home")
         self.async_handle_arm_request(
@@ -934,7 +888,7 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
 
     async def async_alarm_arm_night(
         self, code=None, skip_code=False, bypass_open_sensors=False, skip_delay=False
-    ):
+    ) -> None:
         """Send arm night command."""
         _LOGGER.debug("alarm_arm_night")
         self.async_handle_arm_request(
@@ -947,7 +901,7 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
 
     async def async_alarm_arm_custom_bypass(
         self, code=None, skip_code=False, bypass_open_sensors=False, skip_delay=False
-    ):
+    ) -> None:
         """Send arm custom_bypass command."""
         _LOGGER.debug("alarm_arm_custom_bypass")
         self.async_handle_arm_request(
@@ -960,7 +914,7 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
 
     async def async_alarm_arm_vacation(
         self, code=None, skip_code=False, bypass_open_sensors=False, skip_delay=False
-    ):
+    ) -> None:
         """Send arm vacation command."""
         _LOGGER.debug("alarm_arm_vacation")
         self.async_handle_arm_request(
@@ -976,9 +930,9 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
         _LOGGER.debug("async_alarm_trigger")
         self.async_trigger(skip_delay=True)
 
-    async def async_added_to_hass(self):
+    async def async_added_to_hass(self) -> None:
         """Connect to dispatcher listening for entity data notifications."""
-        _LOGGER.debug("{} is added to hass".format(self.entity_id))
+        _LOGGER.debug(f"{self.entity_id} is added to hass")
         await super().async_added_to_hass()
 
         state = await self.async_get_last_state()
@@ -995,9 +949,9 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
             if "bypassed_sensors" in state.attributes:
                 self._bypassed_sensors = state.attributes["bypassed_sensors"]
 
-    async def async_will_remove_from_hass(self):
+    async def async_will_remove_from_hass(self) -> None:
         await super().async_will_remove_from_hass()
-        _LOGGER.debug("{} is removed from hass".format(self.entity_id))
+        _LOGGER.debug(f"{self.entity_id} is removed from hass")
 
 
 class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
@@ -1020,23 +974,22 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
         """Return the list of supported features."""
         if not self._config or const.ATTR_MODES not in self._config:
             return 0
-        else:
-            supported_features = AlarmControlPanelEntityFeature.TRIGGER
-            for mode, mode_config in self._config[const.ATTR_MODES].items():
-                if mode_config[const.ATTR_ENABLED]:
-                    supported_features = (
-                        supported_features | const.MODES_TO_SUPPORTED_FEATURES[mode]
-                    )
+        supported_features = AlarmControlPanelEntityFeature.TRIGGER
+        for mode, mode_config in self._config[const.ATTR_MODES].items():
+            if mode_config[const.ATTR_ENABLED]:
+                supported_features = (
+                    supported_features | const.MODES_TO_SUPPORTED_FEATURES[mode]
+                )
 
-            return supported_features
+        return supported_features
 
-    async def async_added_to_hass(self):
+    async def async_added_to_hass(self) -> None:
         """Connect to dispatcher listening for entity data notifications."""
         await super().async_added_to_hass()
 
         # make sure that the config is reloaded on changes
         @callback
-        def async_update_config(area_id: str = None):
+        def async_update_config(area_id: str | None = None) -> None:
             _LOGGER.debug("async_update_config")
             coordinator = self.hass.data[const.DOMAIN]["coordinator"]
             self._config = coordinator.store.async_get_config()
@@ -1053,9 +1006,7 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
         state = await self.async_get_last_state()
         if state:
             initial_state = state.state
-            _LOGGER.debug(
-                "Initial state for {} is {}".format(self.entity_id, initial_state)
-            )
+            _LOGGER.debug(f"Initial state for {self.entity_id} is {initial_state}")
             if initial_state == STATE_ALARM_ARMING:
                 self.async_arm(self.arm_mode)
             elif initial_state == STATE_ALARM_PENDING:
@@ -1070,9 +1021,8 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
         self.async_write_ha_state()
 
     @callback
-    def async_update_state(self, state: str = None):
-        """update the state or refresh state attributes"""
-
+    def async_update_state(self, state: str | None = None) -> None:
+        """Update the state or refresh state attributes."""
         if state == self._state:
             return
 
@@ -1080,12 +1030,10 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
         self._state = state
 
         _LOGGER.debug(
-            "entity {} was updated from {} to {}".format(
-                self.entity_id, old_state, state
-            )
+            f"entity {self.entity_id} was updated from {old_state} to {state}"
         )
 
-        if state in const.ARM_MODES + [STATE_ALARM_DISARMED]:
+        if state in [*const.ARM_MODES, STATE_ALARM_DISARMED]:
             # cancel a running timer that possibly running when transitioning from states arming, pending, triggered
             self.async_clear_timer()
 
@@ -1104,8 +1052,8 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
 
         self.schedule_update_ha_state()
 
-    def async_arm_failure(self, open_sensors: dict, context_id=None):
-        """handle arm failure."""
+    def async_arm_failure(self, open_sensors: dict, context_id=None) -> None:
+        """Handle arm failure."""
         self._open_sensors = open_sensors
         command = self._arm_mode.replace("armed", "arm")
 
@@ -1133,7 +1081,7 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
         )
 
     @callback
-    def async_arm(self, arm_mode, **kwargs):
+    def async_arm(self, arm_mode, **kwargs) -> bool:
         """Arm the alarm or switch between arm modes."""
         skip_delay = kwargs.get("skip_delay", False)
         bypass_open_sensors = kwargs.get("bypass_open_sensors", False)
@@ -1156,78 +1104,21 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
             if open_sensors:
                 # there where errors -> abort the arm
                 _LOGGER.info(
-                    "Cannot transition from state {} to state {}, there are open sensors".format(
-                        self._state, arm_mode
-                    )
+                    f"Cannot transition from state {self._state} to state {arm_mode}, there are open sensors"
                 )
                 self.async_arm_failure(open_sensors, context_id=context_id)
                 return False
-            else:
-                # proceed the arm
-                if bypassed_sensors:
-                    self.bypassed_sensors = bypassed_sensors
-                self.open_sensors = None
-                if self.changed_by:
-                    _LOGGER.info(
-                        "Alarm '{}' is armed ({}) by {}.".format(
-                            self.name, arm_mode, self.changed_by
-                        )
-                    )
-                else:
-                    _LOGGER.info(
-                        "Alarm '{}' is armed ({}).".format(self.name, arm_mode)
-                    )
-                if self._state and self._state != STATE_ALARM_ARMING:
-                    dispatcher_send(
-                        self.hass,
-                        "effortlesshome_event",
-                        const.EVENT_ARM,
-                        self.area_id,
-                        {
-                            "arm_mode": arm_mode,
-                            "delay": 0,
-                            const.ATTR_CONTEXT_ID: context_id,
-                        },
-                    )
-                self.async_update_state(arm_mode)
-                return True
-
-        else:  # normal arm event (from disarmed via arming)
-            (open_sensors, _bypassed_sensors) = self.hass.data[const.DOMAIN][
-                "sensor_handler"
-            ].validate_arming_event(
-                area_id=self.area_id,
-                target_state=arm_mode,
-                use_delay=True,
-                bypass_open_sensors=bypass_open_sensors,
-            )
-
-            if open_sensors:
-                # there where errors -> abort the arm
-                _LOGGER.info("Cannot arm right now, there are open sensors")
-                self.async_arm_failure(open_sensors, context_id=context_id)
-                return False
-            else:
-                # proceed the arm
+            # proceed the arm
+            if bypassed_sensors:
+                self.bypassed_sensors = bypassed_sensors
+            self.open_sensors = None
+            if self.changed_by:
                 _LOGGER.info(
-                    "Alarm is now arming. Waiting for {} seconds.".format(exit_delay)
+                    f"Alarm '{self.name}' is armed ({arm_mode}) by {self.changed_by}."
                 )
-
-                @callback
-                def async_leave_timer_finished(now):
-                    """Update state at a scheduled point in time."""
-                    _LOGGER.debug("async_leave_timer_finished")
-                    self.async_clear_timer()
-                    self.async_arm(
-                        self.arm_mode,
-                        bypass_open_sensors=bypass_open_sensors,
-                        skip_delay=True,
-                    )
-
-                self.async_set_timer(exit_delay, async_leave_timer_finished)
-                self.delay = exit_delay
-                self.open_sensors = None
-
+            else:
+                _LOGGER.info(f"Alarm '{self.name}' is armed ({arm_mode}).")
+            if self._state and self._state != STATE_ALARM_ARMING:
                 dispatcher_send(
                     self.hass,
                     "effortlesshome_event",
@@ -1235,21 +1126,64 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
                     self.area_id,
                     {
                         "arm_mode": arm_mode,
-                        "delay": exit_delay,
+                        "delay": 0,
                         const.ATTR_CONTEXT_ID: context_id,
                     },
                 )
-                self.async_update_state(STATE_ALARM_ARMING)
+            self.async_update_state(arm_mode)
+            return True
 
-                return True
+        # normal arm event (from disarmed via arming)
+        (open_sensors, _bypassed_sensors) = self.hass.data[const.DOMAIN][
+            "sensor_handler"
+        ].validate_arming_event(
+            area_id=self.area_id,
+            target_state=arm_mode,
+            use_delay=True,
+            bypass_open_sensors=bypass_open_sensors,
+        )
+
+        if open_sensors:
+            # there where errors -> abort the arm
+            _LOGGER.info("Cannot arm right now, there are open sensors")
+            self.async_arm_failure(open_sensors, context_id=context_id)
+            return False
+        # proceed the arm
+        _LOGGER.info(f"Alarm is now arming. Waiting for {exit_delay} seconds.")
+
+        @callback
+        def async_leave_timer_finished(now) -> None:
+            """Update state at a scheduled point in time."""
+            _LOGGER.debug("async_leave_timer_finished")
+            self.async_clear_timer()
+            self.async_arm(
+                self.arm_mode,
+                bypass_open_sensors=bypass_open_sensors,
+                skip_delay=True,
+            )
+
+        self.async_set_timer(exit_delay, async_leave_timer_finished)
+        self.delay = exit_delay
+        self.open_sensors = None
+
+        dispatcher_send(
+            self.hass,
+            "effortlesshome_event",
+            const.EVENT_ARM,
+            self.area_id,
+            {
+                "arm_mode": arm_mode,
+                "delay": exit_delay,
+                const.ATTR_CONTEXT_ID: context_id,
+            },
+        )
+        self.async_update_state(STATE_ALARM_ARMING)
+
+        return True
 
     @callback
-    def async_trigger(self, skip_delay: bool = False, open_sensors: dict = None):
+    def async_trigger(self, skip_delay: bool = False, open_sensors: dict | None = None) -> None:
         """Trigger request. Will only be called the first time a sensor trips."""
-
-        print("in alarm triggered")
-        print(open_sensors)
-
         if self._state == STATE_ALARM_PENDING or skip_delay or not self._arm_mode:
             entry_delay = 0
         else:
@@ -1292,9 +1226,8 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
                 # there is a max. trigger time configured
 
                 @callback
-                def async_trigger_timer_finished(now):
+                def async_trigger_timer_finished(now) -> None:
                     """Update state at a scheduled point in time."""
-
                     _LOGGER.debug("async_trigger_timer_finished")
                     self._changed_by = None
                     self.async_clear_timer()
@@ -1327,12 +1260,12 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
             self.async_update_state(STATE_ALARM_TRIGGERED)
 
             # call service to create alarm here, if device type is smoke, etc. raise monitor alarm, if it is medical alert raise med alert, else security
-            result = asyncio.create_task(creatependingalarm(open_sensors))
+            asyncio.create_task(creatependingalarm(open_sensors))
 
         else:  # to pending state
 
             @callback
-            def async_entry_timer_finished(now):
+            def async_entry_timer_finished(now) -> None:
                 """Update state at a scheduled point in time."""
                 self.async_clear_timer()
 
@@ -1341,19 +1274,17 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
 
             self.async_set_timer(entry_delay, async_entry_timer_finished)
             self.delay = entry_delay
-            _LOGGER.info(
-                "Alarm will be triggered after {} seconds.".format(entry_delay)
-            )
+            _LOGGER.info(f"Alarm will be triggered after {entry_delay} seconds.")
 
             self.async_update_state(STATE_ALARM_PENDING)
 
-    def async_clear_timer(self):
-        """clear a running timer."""
+    def async_clear_timer(self) -> None:
+        """Clear a running timer."""
         if self._timer:
             self._timer()
             self._timer = None
 
-    def async_set_timer(self, delay, cb_func):
+    def async_set_timer(self, delay, cb_func) -> None:
         self.async_clear_timer()
         now = dt_util.utcnow()
 
@@ -1362,7 +1293,7 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
 
         self._timer = async_track_point_in_time(self.hass, cb_func, now + delay)
 
-    def update_ready_to_arm_modes(self, value):
+    def update_ready_to_arm_modes(self, value) -> None:
         """Set arm modes which are ready for arming (no blocking sensors)."""
         if value == self._ready_to_arm_modes:
             return
@@ -1393,20 +1324,19 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
     @property
     def supported_features(self) -> int:
         """Return the list of supported features."""
-
         supported_features = [
             item.supported_features or 0
             for item in self.hass.data[const.DOMAIN]["areas"].values()
         ]
         return functools.reduce(operator.and_, supported_features)
 
-    async def async_added_to_hass(self):
+    async def async_added_to_hass(self) -> None:
         """Connect to dispatcher listening for entity data notifications."""
         await super().async_added_to_hass()
 
         # load the configuration and make sure that it is reloaded on changes
         @callback
-        def async_update_config(area_id=None):
+        def async_update_config(area_id=None) -> None:
             if area_id and area_id in self.hass.data[const.DOMAIN]["areas"]:
                 # wait for update of the area entity, to refresh the supported_features
                 async_call_later(self.hass, 1, async_update_config)
@@ -1426,7 +1356,7 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
         async_update_config()
 
         @callback
-        def async_alarm_state_changed(area_id: str, old_state: str, new_state: str):
+        def async_alarm_state_changed(area_id: str, old_state: str, new_state: str) -> None:
             if not area_id:
                 return
             self.async_update_state()
@@ -1436,7 +1366,9 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
         )
 
         @callback
-        def async_handle_event(event: str, area_id: str, args: dict = {}):
+        def async_handle_event(event: str, area_id: str, args: dict | None = None) -> None:
+            if args is None:
+                args = {}
             if not area_id or event not in [
                 const.EVENT_FAILED_TO_ARM,
                 const.EVENT_TRIGGER,
@@ -1464,12 +1396,11 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
                     args,
                 )
 
-            if event == const.EVENT_TRIGGER_TIME_EXPIRED:
-                if (
-                    self.hass.data[const.DOMAIN]["areas"][area_id].state
-                    == STATE_ALARM_DISARMED
-                ):
-                    self.alarm_disarm(skip_code=True)
+            if event == const.EVENT_TRIGGER_TIME_EXPIRED and (
+                self.hass.data[const.DOMAIN]["areas"][area_id].state
+                == STATE_ALARM_DISARMED
+            ):
+                self.alarm_disarm(skip_code=True)
             if event == const.EVENT_READY_TO_ARM_MODES_CHANGED:
                 self.update_ready_to_arm_modes()
 
@@ -1483,9 +1414,8 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
         self.async_write_ha_state()
 
     @callback
-    def async_update_state(self, state: str = None):
-        """update the state or refresh state attributes"""
-
+    def async_update_state(self, state: str | None = None) -> None:
+        """Update the state or refresh state attributes."""
         if state:
             # do not allow updating the state directly
             return
@@ -1575,9 +1505,7 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
 
             self._state = state
             _LOGGER.debug(
-                "entity {} was updated from {} to {}".format(
-                    self.entity_id, old_state, state
-                )
+                f"entity {self.entity_id} was updated from {old_state} to {state}"
             )
             dispatcher_send(
                 self.hass, "effortlesshome_state_updated", None, old_state, state
@@ -1595,7 +1523,7 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
         self.schedule_update_ha_state()
 
     @callback
-    def alarm_disarm(self, code=None, **kwargs):
+    def alarm_disarm(self, code=None, **kwargs) -> None:
         """Send disarm command."""
         skip_code = kwargs.get("skip_code", False)
         context_id = kwargs.get("context_id", None)
@@ -1615,7 +1543,7 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
                 {const.ATTR_CONTEXT_ID: context_id},
             )
 
-    def async_arm(self, arm_mode, **kwargs):
+    def async_arm(self, arm_mode, **kwargs) -> None:
         """Arm the alarm or switch between arm modes."""
         skip_delay = kwargs.get("skip_delay", False)
         bypass_open_sensors = kwargs.get("bypass_open_sensors", False)
@@ -1650,7 +1578,7 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
             for area_id, entity in self.hass.data[const.DOMAIN]["areas"].items():
                 if entity.state == STATE_ALARM_ARMING:
                     t = area_config[area_id][const.ATTR_MODES][arm_mode]["exit_time"]
-                    delay = t if t > delay else delay
+                    delay = max(delay, t)
 
             dispatcher_send(
                 self.hass,
@@ -1664,8 +1592,8 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
                 },
             )
 
-    def async_arm_failure(self, open_sensors: dict, context_id=None):
-        """handle arm failure."""
+    def async_arm_failure(self, open_sensors: dict, context_id=None) -> None:
+        """Handle arm failure."""
         self.open_sensors = open_sensors
         command = self._target_state.replace("armed", "arm")
 
@@ -1689,13 +1617,13 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
         self.schedule_update_ha_state()
 
     @callback
-    def async_trigger(self, skip_delay: bool = False, _open_sensors: dict = None):
-        """handle triggering via service call"""
+    def async_trigger(self, skip_delay: bool = False, _open_sensors: dict | None = None) -> None:
+        """Handle triggering via service call."""
         for item in self.hass.data[const.DOMAIN]["areas"].values():
             if item.state != self._revert_state:
                 item.async_trigger(skip_delay=skip_delay)
 
-    def update_ready_to_arm_modes(self):
+    def update_ready_to_arm_modes(self) -> None:
         """Set arm modes which are ready for arming (no blocking sensors)."""
         modes_list = const.ARM_MODES
         for item in self.hass.data[const.DOMAIN]["areas"].values():
