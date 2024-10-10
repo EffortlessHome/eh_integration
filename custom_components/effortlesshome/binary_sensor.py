@@ -40,6 +40,114 @@ def setup_platform(
     add_entities([windowgroup()])
     add_entities([presencegroup()])
     add_entities([safetygroup()])
+    add_entities([humiditygroup()])
+    add_entities([runninggroup()])
+    add_entities([temperaturegroup()])
+
+
+class runninggroup(BinarySensorEntity):
+    """Representation of a sensor."""
+
+    device_class = "running"
+
+    def __init__(self) -> None:
+        """Initialize the sensor."""
+        self._state = None
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Running Group Sensor"
+
+    @property
+    def icon(self) -> str:
+        return "mdi:washing-machine"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
+
+    def update(self) -> None:
+        """
+        Fetch new state data for the sensor.
+
+        This is the only method that should fetch new data for Home Assistant.
+        """
+        entity_id = "group.running_sensors_group"
+        sensor_state = self.hass.states.get(entity_id)
+
+        self._state = sensor_state.state
+
+
+class temperaturegroup(BinarySensorEntity):
+    """Representation of a sensor."""
+
+    device_class = "temperature"
+
+    def __init__(self) -> None:
+        """Initialize the sensor."""
+        self._state = None
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Temperature Group Sensor"
+
+    @property
+    def icon(self) -> str:
+        return "mdi:thermometer"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
+
+    def update(self) -> None:
+        """
+        Fetch new state data for the sensor.
+
+        This is the only method that should fetch new data for Home Assistant.
+        """
+        entity_id = "group.temperature_sensors_group"
+        sensor_state = self.hass.states.get(entity_id)
+
+        self._state = sensor_state.state
+
+
+class humiditygroup(BinarySensorEntity):
+    """Representation of a sensor."""
+
+    device_class = "humidity"
+
+    def __init__(self) -> None:
+        """Initialize the sensor."""
+        self._state = None
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Humidity Group Sensor"
+
+    @property
+    def icon(self) -> str:
+        return "mdi:water-percent"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
+
+    def update(self) -> None:
+        """
+        Fetch new state data for the sensor.
+
+        This is the only method that should fetch new data for Home Assistant.
+        """
+        entity_id = "group.humidity_sensors_group"
+        sensor_state = self.hass.states.get(entity_id)
+
+        self._state = sensor_state.state
 
 
 class presencegroup(BinarySensorEntity):

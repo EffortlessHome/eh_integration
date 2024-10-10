@@ -83,6 +83,8 @@ from .sensors import (
 )
 from .store import async_get_registry
 from .websockets import async_register_websockets
+from .light_groups import create_light_groups_by_area
+from .MotionSensorGrouper import MotionSensorGrouper
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -115,7 +117,13 @@ async def async_setup(hass, config) -> bool:
     )
 
     await async_setup_devicegroup(hass, config)
-    # await async_setup_lightgroup_entry(hass, config)
+    await create_light_groups_by_area(hass)
+
+    # Initialize the Motion Sensor Grouper
+    grouper = MotionSensorGrouper(hass)
+
+    # Create groups for motion sensors
+    await grouper.create_sensor_groups()
 
     AIHASSComponent.set_hass(hass)
 
