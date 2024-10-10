@@ -1,0 +1,82 @@
+EffortlessHome:
+  modes:
+    light:
+      # Primary colors
+      primary-color: "#2F3B52"  # Dark blue for primary UI elements
+      accent-color: "#F1B24A"   # Bright accent color for interactive elements
+      background-color: "#FFFFFF" # Clean white background for readability
+      card-background-color: "#F5F5F5" # Light gray for cards
+
+      # Text colors
+      primary-text-color: "#2F3B52"  # Main text color (dark blue)
+      secondary-text-color: "#6C757D" # Muted gray for less important text
+      accent-text-color: "#F1B24A"    # Accent color for important labels or buttons
+
+      # Header and Sidebar
+      app-header-background-color: "#2F3B52"  # Dark blue header
+      app-header-text-color: "#FFFFFF"        # White text in header
+      sidebar-background-color: "#F5F5F5"     # Light gray for sidebar
+      sidebar-icon-color: "#2F3B52"           # Sidebar icon color to match branding
+
+      # Buttons
+      paper-button-background-color: "#F1B24A"  # Bright accent for buttons
+      paper-button-text-color: "#FFFFFF"        # White text on buttons for contrast
+
+      # Toggles and switches
+      switch-checked-button-color: "#F1B24A"    # On-state color for switches
+      switch-unchecked-button-color: "#6C757D"  # Off-state muted gray
+
+      # Badges and notifications
+      paper-item-icon-active-color: "#F1B24A"   # Active badge and icon color
+      notification-background-color: "#FFEBEE"  # Light red for notifications
+
+      # Custom elements
+      ha-card-border-radius: "8px"              # Rounded corners for cards
+      ha-card-box-shadow: "0 2px 4px rgba(0, 0, 0, 0.1)" # Subtle shadow for card depth
+
+      # Scrollbars and other details
+      scrollbar-thumb-color: "#2F3B52"          # Dark blue scrollbars
+      scrollbar-background-color: "#F5F5F5"     # Light gray scrollbar background
+
+      #lovelace-background: 'left no-repeat url("/local/ehvirtualbackground.png")'
+
+    # Dark Theme
+    dark:
+      # Primary colors
+      primary-color: "#F1B24A"  # Bright accent color for primary UI elements
+      accent-color: "#F1B24A"   # Accent color for interactive elements
+      background-color: "#1E1E1E" # Dark background for better contrast
+      card-background-color: "#2F2F2F" # Darker gray for card backgrounds
+
+      # Text colors
+      primary-text-color: "#F5F5F5"  # Light gray main text color for dark mode
+      secondary-text-color: "#A0A0A0" # Dimmed gray for secondary text
+      accent-text-color: "#F1B24A"    # Bright accent color for important labels
+
+      # Header and Sidebar
+      app-header-background-color: "#1E1E1E"  # Dark background for header
+      app-header-text-color: "#F5F5F5"        # Light text on dark background
+      sidebar-background-color: "#2F2F2F"     # Dark gray sidebar
+      sidebar-icon-color: "#F1B24A"           # Bright accent for icons
+
+      # Buttons
+      paper-button-background-color: "#F1B24A"  # Bright accent button background
+      paper-button-text-color: "#1E1E1E"        # Dark text on bright button background
+
+      # Toggles and switches
+      switch-checked-button-color: "#F1B24A"    # On-state accent for switches
+      switch-unchecked-button-color: "#6C757D"  # Off-state muted gray
+
+      # Badges and notifications
+      paper-item-icon-active-color: "#F1B24A"   # Active badge and icon color
+      notification-background-color: "#611111"  # Subtle dark red for notifications
+
+      # Custom elements
+      ha-card-border-radius: "8px"              # Rounded corners for cards
+      ha-card-box-shadow: "0 2px 4px rgba(0, 0, 0, 0.5)" # Stronger shadow for depth
+
+      # Scrollbars and other details
+      scrollbar-thumb-color: "#F1B24A"          # Bright accent scrollbars
+      scrollbar-background-color: "#2F2F2F"     # Dark gray scrollbar background
+
+      #lovelace-background: 'left no-repeat url("/local/ehvirtualbackground.png")'
