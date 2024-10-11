@@ -1,4 +1,4 @@
-import logging
+import logging  # noqa: D100, EXE002
 
 import homeassistant.util.dt as dt_util
 from homeassistant.const import (
@@ -10,13 +10,13 @@ from homeassistant.const import (
     STATE_ALARM_PENDING,
     STATE_ALARM_TRIGGERED,
     STATE_CLOSED,
-    STATE_LOCKED,
+    STATE_LOCKED,  # type: ignore  # noqa: PGH003
     STATE_OFF,
     STATE_ON,
     STATE_OPEN,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
-    STATE_UNLOCKED,
+    STATE_UNLOCKED,  # type: ignore  # noqa: PGH003
 )
 from homeassistant.core import (
     CoreState,
@@ -71,7 +71,7 @@ SENSOR_TYPES = [
 _LOGGER = logging.getLogger(__name__)
 
 
-def parse_sensor_state(state):
+def parse_sensor_state(state):  # noqa: ANN001, ANN201, D103
     if not state or not state.state or state.state == STATE_UNAVAILABLE:
         return STATE_UNAVAILABLE
     if state.state in SENSOR_STATES_OPEN:
@@ -81,7 +81,7 @@ def parse_sensor_state(state):
     return STATE_UNKNOWN
 
 
-def sensor_state_allowed(state, sensor_config, alarm_state) -> bool:
+def sensor_state_allowed(state, sensor_config, alarm_state) -> bool:  # noqa: ANN001, PLR0911
     """Return whether the sensor state is permitted or a state change should occur."""
     if state != STATE_OPEN and (
         state != STATE_UNAVAILABLE or not sensor_config[ATTR_TRIGGER_UNAVAILABLE]
@@ -105,15 +105,15 @@ def sensor_state_allowed(state, sensor_config, alarm_state) -> bool:
         # normal triggering case
         return False
 
-    if alarm_state == STATE_ALARM_PENDING and not sensor_config[ATTR_USE_ENTRY_DELAY]:
+    if alarm_state == STATE_ALARM_PENDING and not sensor_config[ATTR_USE_ENTRY_DELAY]:  # noqa: SIM103
         # triggering of immediate sensor while alarm is pending
         return False
 
     return True
 
 
-class SensorHandler:
-    def __init__(self, hass: HomeAssistant) -> None:
+class SensorHandler:  # noqa: D101
+    def __init__(self, hass: HomeAssistant) -> None:  # noqa: D107
         self._config = None
         self.hass = hass
         self._state_listener = None
@@ -147,7 +147,7 @@ class SensorHandler:
         )
         async_update_sensor_config()
 
-        def handle_startup(_event) -> None:
+        def handle_startup(_event) -> None:  # noqa: ANN001
             self._startup_complete = True
 
         if hass.state == CoreState.running:
@@ -184,7 +184,7 @@ class SensorHandler:
         else:
             self._state_listener = None
 
-        # clear previous sensor group events which are not active for current alarm state
+        # clear previous sensor group events which are not active for current alarm state  # noqa: E501
         for group_id in self._group_events:
             self._group_events[group_id] = dict(
                 filter(
@@ -197,17 +197,17 @@ class SensorHandler:
         if area_id and old_state is None:
             sensors_list = self.active_sensors_for_alarm_state(area_id)
             for entity in sensors_list:
-                state = self.hass.states.get(entity)
+                state = self.hass.states.get(entity)  # type: ignore  # noqa: PGH003
                 sensor_state = parse_sensor_state(state)
-                if state and state.state and sensor_state != STATE_UNKNOWN:
+                if state and state.state and sensor_state != STATE_UNKNOWN:  # type: ignore  # noqa: PGH003
                     _LOGGER.debug(
-                        f"Initial state for {entity} is {parse_sensor_state(state)}"
+                        f"Initial state for {entity} is {parse_sensor_state(state)}"  # noqa: G004
                     )
 
         if area_id:
             self.update_ready_to_arm_status(area_id)
 
-    def active_sensors_for_alarm_state(self, area_id: str, to_state: str | None = None):
+    def active_sensors_for_alarm_state(self, area_id: str, to_state: str | None = None):  # noqa: ANN201
         """Compose a list of sensors that are active for the state."""
         alarm_entity = self.hass.data[const.DOMAIN]["areas"][area_id]
 
@@ -219,7 +219,7 @@ class SensorHandler:
             )
 
         entities = []
-        for entity, config in self._config.items():
+        for entity, config in self._config.items():  # type: ignore  # noqa: PGH003
             if (
                 config["area"] != area_id
                 or not config["enabled"]
@@ -232,13 +232,16 @@ class SensorHandler:
             if state in config[const.ATTR_MODES] or config[ATTR_ALWAYS_ON]:
                 entities.append(entity)
             elif not to_state and config["type"] != SENSOR_TYPE_MOTION:
-                # always watch all sensors other than motion sensors, to indicate readiness for arming
+                # always watch all sensors other than motion sensors, to indicate readiness for arming  # noqa: E501
                 entities.append(entity)
 
         return entities
 
-    def validate_arming_event(
-        self, area_id: str, target_state: str | None = None, **kwargs
+    def validate_arming_event(  # noqa: ANN201
+        self,
+        area_id: str,
+        target_state: str | None = None,
+        **kwargs,  # noqa: ANN003
     ):
         """Check whether all sensors have the correct state prior to arming."""
         use_delay = kwargs.get("use_delay", False)
@@ -255,7 +258,7 @@ class SensorHandler:
             alarm_state = STATE_ALARM_PENDING
 
         for entity in sensors_list:
-            sensor_config = self._config[entity]
+            sensor_config = self._config[entity]  # type: ignore  # noqa: PGH003
             state = self.hass.states.get(entity)
             sensor_state = parse_sensor_state(state)
             if not state or not state.state:
@@ -281,15 +284,15 @@ class SensorHandler:
         return (open_sensors, bypassed_sensors)
 
     @callback
-    def async_sensor_state_changed(self, event) -> None:
-        """Callback fired when a sensor state has changed."""
+    def async_sensor_state_changed(self, event) -> None:  # noqa: ANN001
+        """Callback fired when a sensor state has changed."""  # noqa: D401
         entity = event.data["entity_id"]
         old_state = parse_sensor_state(event.data["old_state"])
         new_state = parse_sensor_state(event.data["new_state"])
-        sensor_config = self._config[entity]
+        sensor_config = self._config[entity]  # type: ignore  # noqa: PGH003
         if old_state == STATE_UNKNOWN:
-            # sensor is unknown at startup, state which comes after is considered as initial state
-            _LOGGER.debug(f"Initial state for {entity} is {new_state}")
+            # sensor is unknown at startup, state which comes after is considered as initial state  # noqa: E501
+            _LOGGER.debug(f"Initial state for {entity} is {new_state}")  # noqa: G004
             self.update_ready_to_arm_status(sensor_config["area"])
             return
         if old_state == new_state:
@@ -297,7 +300,7 @@ class SensorHandler:
             return
 
         _LOGGER.debug(
-            f"entity {entity} changed: old_state={old_state}, new_state={new_state}"
+            f"entity {entity} changed: old_state={old_state}, new_state={new_state}"  # noqa: G004
         )
 
         alarm_entity = self.hass.data[const.DOMAIN]["areas"][sensor_config["area"]]
@@ -334,17 +337,17 @@ class SensorHandler:
 
         if sensor_config[ATTR_ALWAYS_ON]:
             # immediate trigger due to always on sensor
-            _LOGGER.info(f"Alarm is triggered due to an always-on sensor: {entity}")
+            _LOGGER.info(f"Alarm is triggered due to an always-on sensor: {entity}")  # noqa: G004
             alarm_entity.async_trigger(skip_delay=True, open_sensors=open_sensors)
 
         elif alarm_state == STATE_ALARM_ARMING:
             # sensor triggered while arming, abort arming
-            _LOGGER.debug(f"Arming was aborted due to a sensor being active: {entity}")
+            _LOGGER.debug(f"Arming was aborted due to a sensor being active: {entity}")  # noqa: G004
             alarm_entity.async_arm_failure(open_sensors)
 
         elif alarm_state in const.ARM_MODES:
             # standard alarm trigger
-            _LOGGER.info(f"Alarm is triggered due to sensor: {entity}")
+            _LOGGER.info(f"Alarm is triggered due to sensor: {entity}")  # noqa: G004
             alarm_entity.async_trigger(
                 skip_delay=(not sensor_config[ATTR_USE_ENTRY_DELAY]),
                 open_sensors=open_sensors,
@@ -352,18 +355,18 @@ class SensorHandler:
 
         elif alarm_state == STATE_ALARM_PENDING:
             # immediate trigger while in pending state
-            _LOGGER.info(f"Alarm is triggered due to sensor: {entity}")
+            _LOGGER.info(f"Alarm is triggered due to sensor: {entity}")  # noqa: G004
             alarm_entity.async_trigger(skip_delay=True, open_sensors=open_sensors)
 
         self.update_ready_to_arm_status(sensor_config["area"])
 
-    def start_arm_timer(self, entity) -> None:
+    def start_arm_timer(self, entity) -> None:  # noqa: ANN001
         """Start timer for automatical arming."""
 
         @callback
-        def timer_finished(now) -> None:
+        def timer_finished(now) -> None:  # noqa: ANN001, ARG001
             _LOGGER.debug("timer finished")
-            sensor_config = self._config[entity]
+            sensor_config = self._config[entity]  # type: ignore  # noqa: PGH003
             alarm_entity = self.hass.data[const.DOMAIN]["areas"][sensor_config["area"]]
             if alarm_entity.state == STATE_ALARM_ARMING:
                 alarm_entity.async_arm(alarm_entity.arm_mode, skip_delay=True)
@@ -377,16 +380,16 @@ class SensorHandler:
             self.hass, timer_finished, now + const.SENSOR_ARM_TIME
         )
 
-    def stop_arm_timer(self, entity=None) -> None:
+    def stop_arm_timer(self, entity=None) -> None:  # noqa: ANN001
         """Cancel timer(s) for automatical arming."""
         if entity and entity in self._arm_timers:
             self._arm_timers[entity]()
         elif not entity:
-            for entity in self._arm_timers:
+            for entity in self._arm_timers:  # noqa: PLR1704
                 self._arm_timers[entity]()
 
     def process_group_event(self, entity: str, state: str) -> dict:
-        """Check if sensor entity is member of a group and compare with previous events to evaluate trigger."""
+        """Check if sensor entity is member of a group and compare with previous events to evaluate trigger."""  # noqa: E501
         group_id = None
         for group in self._groups.values():
             if entity in group[ATTR_ENTITIES]:
@@ -411,23 +414,23 @@ class SensorHandler:
         )
         if len(recent_events.keys()) < group[ATTR_EVENT_COUNT]:
             _LOGGER.debug(
-                f"tripped sensor {entity} was ignored since it belongs to group {group[ATTR_NAME]}"
+                f"tripped sensor {entity} was ignored since it belongs to group {group[ATTR_NAME]}"  # noqa: E501, G004
             )
             return {}
-        for entity in recent_events:
+        for entity in recent_events:  # noqa: PLR1704
             open_sensors[entity] = group_events[entity][ATTR_STATE]
         _LOGGER.debug(
-            f"tripped sensor {entity} caused the triggering of group {group[ATTR_NAME]}"
+            f"tripped sensor {entity} caused the triggering of group {group[ATTR_NAME]}"  # noqa: G004
         )
         return open_sensors
 
-    def update_ready_to_arm_status(self, area_id) -> None:
-        """Calculate whether the system is ready for arming (based on the sensor states)."""
+    def update_ready_to_arm_status(self, area_id) -> None:  # noqa: ANN001
+        """Calculate whether the system is ready for arming (based on the sensor states)."""  # noqa: E501
         alarm_entity = self.hass.data[const.DOMAIN]["areas"][area_id]
 
         arm_modes = [
             mode
-            for (mode, config) in alarm_entity._config[const.ATTR_MODES].items()
+            for (mode, config) in alarm_entity._config[const.ATTR_MODES].items()  # noqa: SLF001
             if config[const.ATTR_ENABLED]
         ]
 
@@ -438,14 +441,14 @@ class SensorHandler:
         ):
             arm_modes.remove(alarm_entity.arm_mode)
 
-        def arm_mode_is_ready(mode) -> bool:
+        def arm_mode_is_ready(mode) -> bool:  # noqa: ANN001
             (blocking_sensors, _bypassed_sensors) = self.validate_arming_event(
                 area_id, mode
             )
             return not (len(blocking_sensors))
 
         arm_modes = list(filter(arm_mode_is_ready, arm_modes))
-        prev_arm_modes = alarm_entity._ready_to_arm_modes
+        prev_arm_modes = alarm_entity._ready_to_arm_modes  # noqa: SLF001
 
         if arm_modes != prev_arm_modes:
             alarm_entity.update_ready_to_arm_modes(arm_modes)

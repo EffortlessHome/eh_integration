@@ -1,4 +1,4 @@
-# fire events in HA for use with automations
+# fire events in HA for use with automations  # noqa: EXE002
 
 import logging
 
@@ -48,7 +48,7 @@ class EventHandler:
                 reason=reasons[event],
             )
             if "open_sensors" in data:
-                data["sensors"] = list(data["open_sensors"].keys())
+                data["sensors"] = list(data["open_sensors"].keys())  # type: ignore
                 del data["open_sensors"]
 
             self.hass.bus.async_fire("effortlesshome_failed_to_arm", data)

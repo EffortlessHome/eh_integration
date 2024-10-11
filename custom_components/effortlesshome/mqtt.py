@@ -3,11 +3,11 @@ import logging
 
 from homeassistant.components import mqtt
 from homeassistant.components.mqtt import (
-    CONF_COMMAND_TOPIC,
-    CONF_STATE_TOPIC,
+    CONF_COMMAND_TOPIC,  # type: ignore
+    CONF_STATE_TOPIC,  # type: ignore
 )
 from homeassistant.components.mqtt import (
-    DOMAIN as ATTR_MQTT,
+    DOMAIN as ATTR_MQTT,  # type: ignore
 )
 from homeassistant.core import (
     HomeAssistant,
@@ -68,10 +68,10 @@ class MqttHandler:
         def async_alarm_state_changed(
             area_id: str, old_state: str, new_state: str
         ) -> None:
-            if not self._config[ATTR_MQTT][const.ATTR_ENABLED]:
+            if not self._config[ATTR_MQTT][const.ATTR_ENABLED]:  # type: ignore
                 return
 
-            topic = self._config[ATTR_MQTT][CONF_STATE_TOPIC]
+            topic = self._config[ATTR_MQTT][CONF_STATE_TOPIC]  # type: ignore
 
             if not topic:  # do not publish if no topic is provided
                 return
@@ -83,14 +83,14 @@ class MqttHandler:
                 topic.insert(1, slugify(area.name))
                 topic = "/".join(topic)
 
-            payload_config = self._config[ATTR_MQTT][const.ATTR_STATE_PAYLOAD]
+            payload_config = self._config[ATTR_MQTT][const.ATTR_STATE_PAYLOAD]  # type: ignore
             if payload_config.get(new_state):
                 message = payload_config[new_state]
             else:
                 message = new_state
 
             hass.async_create_task(
-                mqtt.async_publish(self.hass, topic, message, retain=True)
+                mqtt.async_publish(self.hass, topic, message, retain=True)  # type: ignore
             )
             _LOGGER.debug(f"Published state '{message}' on topic '{topic}'")
 
@@ -106,10 +106,10 @@ class MqttHandler:
         ) -> None:
             if args is None:
                 args = {}
-            if not self._config[ATTR_MQTT][const.ATTR_ENABLED]:
+            if not self._config[ATTR_MQTT][const.ATTR_ENABLED]:  # type: ignore
                 return
 
-            topic = self._config[ATTR_MQTT][CONF_EVENT_TOPIC]
+            topic = self._config[ATTR_MQTT][CONF_EVENT_TOPIC]  # type: ignore
 
             if not topic:  # do not publish if no topic is provided
                 return
@@ -166,7 +166,7 @@ class MqttHandler:
                 return
 
             payload = json.dumps(payload, cls=JSONEncoder)
-            hass.async_create_task(mqtt.async_publish(self.hass, topic, payload))
+            hass.async_create_task(mqtt.async_publish(self.hass, topic, payload))  # type: ignore
 
         self._subscriptions.append(
             async_dispatcher_connect(
@@ -188,18 +188,18 @@ class MqttHandler:
                 self._subscribed_topics.pop()()
             _LOGGER.debug("Removed subscribed topics")
 
-        if not self._config[ATTR_MQTT][const.ATTR_ENABLED]:
+        if not self._config[ATTR_MQTT][const.ATTR_ENABLED]:  # type: ignore
             return
 
         self._subscribed_topics.append(
-            await mqtt.async_subscribe(
+            await mqtt.async_subscribe(  # type: ignore
                 self.hass,
-                self._config[ATTR_MQTT][CONF_COMMAND_TOPIC],
+                self._config[ATTR_MQTT][CONF_COMMAND_TOPIC],  # type: ignore
                 self.async_message_received,
             )
         )
         _LOGGER.debug(
-            f"Subscribed to topic {self._config[ATTR_MQTT][CONF_COMMAND_TOPIC]}"
+            f"Subscribed to topic {self._config[ATTR_MQTT][CONF_COMMAND_TOPIC]}"  # noqa: G004 # type: ignore
         )
 
     @callback
@@ -252,8 +252,8 @@ class MqttHandler:
             _LOGGER.warning("Received unexpected command")
             return
 
-        payload_config = self._config[ATTR_MQTT][const.ATTR_COMMAND_PAYLOAD]
-        skip_code = not self._config[ATTR_MQTT][const.ATTR_REQUIRE_CODE]
+        payload_config = self._config[ATTR_MQTT][const.ATTR_COMMAND_PAYLOAD]  # type: ignore
+        skip_code = not self._config[ATTR_MQTT][const.ATTR_REQUIRE_CODE]  # type: ignore
 
         command_payloads = {}
         for item in const.COMMANDS:
@@ -278,7 +278,7 @@ class MqttHandler:
                 return
             entity = res[0]
         elif (
-            self._config[const.ATTR_MASTER][const.ATTR_ENABLED]
+            self._config[const.ATTR_MASTER][const.ATTR_ENABLED]  # type: ignore
             and len(self.hass.data[const.DOMAIN]["areas"]) > 1
         ):
             entity = self.hass.data[const.DOMAIN]["master"]

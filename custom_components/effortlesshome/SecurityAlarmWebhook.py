@@ -45,10 +45,10 @@ class SecurityAlarmWebhook:
             alarmstate = hass.states.get("effortlesshome.alarm_id")
 
             if alarmstate is not None:
-                alarmstatus = hass.states.get("effortlesshome.alarmstatus").state
+                alarmstatus = hass.states.get("effortlesshome.alarmstatus").state  # type: ignore
 
                 if alarmstatus == "ACTIVE":
-                    latestalarmid = hass.states.get("effortlesshome.alarm_id").state
+                    latestalarmid = hass.states.get("effortlesshome.alarm_id").state  # type: ignore
 
                     for event in responsejson:
                         alarm_id = event["meta"]["alarm_id"]
@@ -75,4 +75,4 @@ class SecurityAlarmWebhook:
 
 async def async_remove(self) -> None:
     """Unregister the webhook when the integration is removed."""
-    async_unregister(self.hass, self.webhook_id)
+    async_unregister(self.hass, self.webhook_id)  # type: ignore # noqa: F821

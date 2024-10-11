@@ -1,20 +1,22 @@
-import logging
+import logging  # noqa: D100, EXE002
 
 import homeassistant.util.dt as dt_util
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.components.alarm_control_panel import (
-    ATTR_CODE_ARM_REQUIRED,
-    CodeFormat,
+    ATTR_CODE_ARM_REQUIRED,  # type: ignore  # noqa: PGH003
+    CodeFormat,  # type: ignore
 )
-from homeassistant.components.http import HomeAssistantView
+from homeassistant.components.http import (
+    HomeAssistantView,  # type: ignore  # noqa: PGH003
+)
 from homeassistant.components.http.data_validator import RequestDataValidator
 from homeassistant.components.mqtt import (
-    CONF_COMMAND_TOPIC,
-    CONF_STATE_TOPIC,
+    CONF_COMMAND_TOPIC,  # type: ignore  # noqa: PGH003
+    CONF_STATE_TOPIC,  # type: ignore
 )
 from homeassistant.components.mqtt import (
-    DOMAIN as ATTR_MQTT,
+    DOMAIN as ATTR_MQTT,  # type: ignore
 )
 from homeassistant.components.websocket_api import async_register_command, decorators
 from homeassistant.const import (
@@ -523,7 +525,7 @@ async def async_register_websockets(hass) -> None:
         hass,
         "effortlesshome/config",
         websocket_get_config,
-        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(  # type: ignore  # noqa: PGH003
             {vol.Required("type"): "effortlesshome/config"}
         ),
     )
@@ -531,7 +533,7 @@ async def async_register_websockets(hass) -> None:
         hass,
         "effortlesshome/areas",
         websocket_get_areas,
-        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(  # type: ignore  # noqa: PGH003
             {vol.Required("type"): "effortlesshome/areas"}
         ),
     )
@@ -539,7 +541,7 @@ async def async_register_websockets(hass) -> None:
         hass,
         "effortlesshome/sensors",
         websocket_get_sensors,
-        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(  # type: ignore
             {vol.Required("type"): "effortlesshome/sensors"}
         ),
     )
@@ -547,7 +549,7 @@ async def async_register_websockets(hass) -> None:
         hass,
         "effortlesshome/users",
         websocket_get_users,
-        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(  # type: ignore
             {vol.Required("type"): "effortlesshome/users"}
         ),
     )
@@ -555,7 +557,7 @@ async def async_register_websockets(hass) -> None:
         hass,
         "effortlesshome/automations",
         websocket_get_automations,
-        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(  # type: ignore  # noqa: PGH003
             {vol.Required("type"): "effortlesshome/automations"}
         ),
     )
@@ -563,7 +565,7 @@ async def async_register_websockets(hass) -> None:
         hass,
         "effortlesshome/entities",
         websocket_get_alarm_entities,
-        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(  # type: ignore
             {vol.Required("type"): "effortlesshome/entities"}
         ),
     )
@@ -571,7 +573,7 @@ async def async_register_websockets(hass) -> None:
         hass,
         "effortlesshome/sensor_groups",
         websocket_get_sensor_groups,
-        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(  # type: ignore
             {vol.Required("type"): "effortlesshome/sensor_groups"}
         ),
     )
@@ -579,7 +581,7 @@ async def async_register_websockets(hass) -> None:
         hass,
         "effortlesshome/countdown",
         websocket_get_countdown,
-        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(  # type: ignore
             {
                 vol.Required("type"): "effortlesshome/countdown",
                 vol.Required("entity_id"): cv.entity_id,
@@ -590,7 +592,7 @@ async def async_register_websockets(hass) -> None:
         hass,
         "effortlesshome/ready_to_arm_modes",
         websocket_get_ready_to_arm_modes,
-        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(
+        websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(  # type: ignore
             {
                 vol.Required("type"): "effortlesshome/ready_to_arm_modes",
                 vol.Required("entity_id"): cv.entity_id,

@@ -4,7 +4,7 @@ from collections import OrderedDict
 from typing import TYPE_CHECKING, cast
 
 import attr
-from homeassistant.components.alarm_control_panel import CodeFormat
+from homeassistant.components.alarm_control_panel import CodeFormat  # type: ignore
 from homeassistant.const import (
     STATE_ALARM_ARMED_AWAY,
     STATE_ALARM_ARMED_CUSTOM_BYPASS,
@@ -37,39 +37,39 @@ SAVE_DELAY = 10
 class ModeEntry:
     """Mode storage Entry."""
 
-    enabled = attr.ib(type=bool, default=False)
-    exit_time = attr.ib(type=int, default=0)
-    entry_time = attr.ib(type=int, default=0)
-    trigger_time = attr.ib(type=int, default=0)
+    enabled = attr.ib(type=bool, default=False)  # type: ignore
+    exit_time = attr.ib(type=int, default=0)  # type: ignore
+    entry_time = attr.ib(type=int, default=0)  # type: ignore
+    trigger_time = attr.ib(type=int, default=0)  # type: ignore
 
 
 @attr.s(slots=True, frozen=True)
 class MqttConfig:
     """MQTT storage Entry."""
 
-    enabled = attr.ib(type=bool, default=False)
-    state_topic = attr.ib(type=str, default="effortlesshome/state")
-    state_payload = attr.ib(type=dict, default={})
-    command_topic = attr.ib(type=str, default="effortlesshome/command")
-    command_payload = attr.ib(type=dict, default={})
-    require_code = attr.ib(type=bool, default=True)
-    event_topic = attr.ib(type=str, default="effortlesshome/event")
+    enabled = attr.ib(type=bool, default=False)  # type: ignore
+    state_topic = attr.ib(type=str, default="effortlesshome/state")  # type: ignore
+    state_payload = attr.ib(type=dict, default={})  # type: ignore
+    command_topic = attr.ib(type=str, default="effortlesshome/command")  # type: ignore
+    command_payload = attr.ib(type=dict, default={})  # type: ignore
+    require_code = attr.ib(type=bool, default=True)  # type: ignore
+    event_topic = attr.ib(type=str, default="effortlesshome/event")  # type: ignore
 
 
 @attr.s(slots=True, frozen=True)
 class MasterConfig:
     """Master storage Entry."""
 
-    enabled = attr.ib(type=bool, default=True)
-    name = attr.ib(type=str, default="master")
+    enabled = attr.ib(type=bool, default=True)  # type: ignore
+    name = attr.ib(type=str, default="master")  # type: ignore
 
 
 @attr.s(slots=True, frozen=True)
 class AreaEntry:
     """Area storage Entry."""
 
-    area_id = attr.ib(type=str, default=None)
-    name = attr.ib(type=str, default=None)
+    area_id = attr.ib(type=str, default=None)  # type: ignore
+    name = attr.ib(type=str, default=None)  # type: ignore
     modes = attr.ib(
         type=[str, ModeEntry],
         default={
@@ -79,38 +79,38 @@ class AreaEntry:
             STATE_ALARM_ARMED_CUSTOM_BYPASS: ModeEntry(),
             STATE_ALARM_ARMED_VACATION: ModeEntry(),
         },
-    )
+    )  # type: ignore
 
 
 @attr.s(slots=True, frozen=True)
 class Config:
     """(General) Config storage Entry."""
 
-    code_arm_required = attr.ib(type=bool, default=False)
-    code_mode_change_required = attr.ib(type=bool, default=False)
-    code_disarm_required = attr.ib(type=bool, default=False)
+    code_arm_required = attr.ib(type=bool, default=False)  # type: ignore
+    code_mode_change_required = attr.ib(type=bool, default=False)  # type: ignore
+    code_disarm_required = attr.ib(type=bool, default=False)  # type: ignore
     code_format = attr.ib(type=str, default=CodeFormat.NUMBER)
-    disarm_after_trigger = attr.ib(type=bool, default=False)
-    master = attr.ib(type=MasterConfig, default=MasterConfig())
-    mqtt = attr.ib(type=MqttConfig, default=MqttConfig())
+    disarm_after_trigger = attr.ib(type=bool, default=False)  # type: ignore
+    master = attr.ib(type=MasterConfig, default=MasterConfig())  # type: ignore
+    mqtt = attr.ib(type=MqttConfig, default=MqttConfig())  # type: ignore
 
 
 @attr.s(slots=True, frozen=True)
 class SensorEntry:
     """Sensor storage Entry."""
 
-    entity_id = attr.ib(type=str, default=None)
-    type = attr.ib(type=str, default=SENSOR_TYPE_OTHER)
-    modes = attr.ib(type=list, default=[])
-    use_exit_delay = attr.ib(type=bool, default=True)
-    use_entry_delay = attr.ib(type=bool, default=True)
-    always_on = attr.ib(type=bool, default=False)
-    arm_on_close = attr.ib(type=bool, default=False)
-    allow_open = attr.ib(type=bool, default=False)
-    trigger_unavailable = attr.ib(type=bool, default=False)
-    auto_bypass = attr.ib(type=bool, default=False)
+    entity_id = attr.ib(type=str, default=None)  # type: ignore
+    type = attr.ib(type=str, default=SENSOR_TYPE_OTHER)  # type: ignore
+    modes = attr.ib(type=list, default=[])  # type: ignore
+    use_exit_delay = attr.ib(type=bool, default=True)  # type: ignore
+    use_entry_delay = attr.ib(type=bool, default=True)  # type: ignore
+    always_on = attr.ib(type=bool, default=False)  # type: ignore
+    arm_on_close = attr.ib(type=bool, default=False)  # type: ignore
+    allow_open = attr.ib(type=bool, default=False)  # type: ignore
+    trigger_unavailable = attr.ib(type=bool, default=False)  # type: ignore
+    auto_bypass = attr.ib(type=bool, default=False)  # type: ignore
     auto_bypass_modes = attr.ib(type=list, default=[])
-    area = attr.ib(type=str, default=None)
+    area = attr.ib(type=str, default=None)  # type: ignore
     enabled = attr.ib(type=bool, default=True)
 
 
@@ -118,13 +118,13 @@ class SensorEntry:
 class UserEntry:
     """User storage Entry."""
 
-    user_id = attr.ib(type=str, default=None)
-    name = attr.ib(type=str, default="")
+    user_id = attr.ib(type=str, default=None)  # type: ignore
+    name = attr.ib(type=str, default="")  # type: ignore
     enabled = attr.ib(type=bool, default=True)
     code = attr.ib(type=str, default="")
-    can_arm = attr.ib(type=bool, default=False)
-    can_disarm = attr.ib(type=bool, default=False)
-    is_override_code = attr.ib(type=bool, default=False)
+    can_arm = attr.ib(type=bool, default=False)  # type: ignore
+    can_disarm = attr.ib(type=bool, default=False)  # type: ignore
+    is_override_code = attr.ib(type=bool, default=False)  # type: ignore
     code_format = attr.ib(type=str, default="")
     code_length = attr.ib(type=int, default=0)
     area_limit = attr.ib(type=list, default=[])
@@ -444,10 +444,10 @@ class effortlesshomeStorage:
         store_data["areas"] = [attr.asdict(entry) for entry in self.areas.values()]
         store_data["sensors"] = [attr.asdict(entry) for entry in self.sensors.values()]
         store_data["users"] = [attr.asdict(entry) for entry in self.users.values()]
-        store_data["automations"] = [
+        store_data["automations"] = [  # type: ignore
             attr.asdict(entry) for entry in self.automations.values()
         ]
-        store_data["sensor_groups"] = [
+        store_data["sensor_groups"] = [  # type: ignore
             attr.asdict(entry) for entry in self.sensor_groups.values()
         ]
 
@@ -480,8 +480,8 @@ class effortlesshomeStorage:
     @callback
     def async_update_mode_config(self, mode: str, changes: dict):
         """Update existing config."""
-        modes = self.config.modes
-        old = self.config.modes[mode] if mode in self.config.modes else ModeEntry()
+        modes = self.config.modes  # type: ignore
+        old = self.config.modes[mode] if mode in self.config.modes else ModeEntry()  # type: ignore
         new = attr.evolve(old, **changes)
         modes[mode] = new
         self.config = attr.evolve(self.config, modes=modes)
@@ -492,7 +492,7 @@ class effortlesshomeStorage:
     def async_get_area(self, area_id) -> AreaEntry:
         """Get an existing AreaEntry by id."""
         res = self.areas.get(area_id)
-        return attr.asdict(res) if res else None
+        return attr.asdict(res) if res else None  # type: ignore
 
     @callback
     def async_get_areas(self):
@@ -506,10 +506,10 @@ class effortlesshomeStorage:
     def async_create_area(self, data: dict) -> AreaEntry:
         """Create a new AreaEntry."""
         area_id = str(int(time.time()))
-        new_area = AreaEntry(**data, area_id=area_id)
+        new_area = AreaEntry(**data, area_id=area_id)  # type: ignore
         self.areas[area_id] = new_area
         self.async_schedule_save()
-        return attr.asdict(new_area)
+        return attr.asdict(new_area)  # type: ignore
 
     @callback
     def async_delete_area(self, area_id: str) -> None:
@@ -517,8 +517,8 @@ class effortlesshomeStorage:
         if area_id in self.areas:
             del self.areas[area_id]
             self.async_schedule_save()
-            return True
-        return False
+            return True  # type: ignore
+        return False  # type: ignore
 
     @callback
     def async_update_area(self, area_id: str, changes: dict) -> AreaEntry:
@@ -526,7 +526,7 @@ class effortlesshomeStorage:
         old = self.areas[area_id]
         new = self.areas[area_id] = attr.evolve(old, **changes)
         self.async_schedule_save()
-        return attr.asdict(new)
+        return attr.asdict(new)  # type: ignore
 
     @callback
     def async_get_sensor(self, entity_id) -> SensorEntry:
@@ -670,7 +670,7 @@ class effortlesshomeStorage:
         new_group = SensorGroupEntry(**data, group_id=group_id)
         self.sensor_groups[group_id] = new_group
         self.async_schedule_save()
-        return group_id
+        return group_id  # type: ignore
 
     @callback
     def async_delete_sensor_group(self, group_id: str) -> None:
