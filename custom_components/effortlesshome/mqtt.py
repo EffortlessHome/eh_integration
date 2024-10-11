@@ -65,7 +65,9 @@ class MqttHandler:
         async_update_config()
 
         @callback
-        def async_alarm_state_changed(area_id: str, old_state: str, new_state: str) -> None:
+        def async_alarm_state_changed(
+            area_id: str, old_state: str, new_state: str
+        ) -> None:
             if not self._config[ATTR_MQTT][const.ATTR_ENABLED]:
                 return
 
@@ -99,7 +101,9 @@ class MqttHandler:
         )
 
         @callback
-        def async_handle_event(event: str, area_id: str, args: dict | None = None) -> None:
+        def async_handle_event(
+            event: str, area_id: str, args: dict | None = None
+        ) -> None:
             if args is None:
                 args = {}
             if not self._config[ATTR_MQTT][const.ATTR_ENABLED]:

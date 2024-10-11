@@ -1,4 +1,4 @@
-"""The effortlesshome Integration."""
+"""The effortlesshome Integration."""  # noqa: EXE002
 
 from __future__ import annotations
 
@@ -6,36 +6,27 @@ import asyncio
 import base64
 import json
 import logging
-import os
 import re
-import socket
-from datetime import timedelta
 from typing import TYPE_CHECKING
 
 import aiohttp
-import async_timeout
 import bcrypt
-import numpy as np
-import yaml
-from homeassistant.components.alarm_control_panel import DOMAIN as PLATFORM
-from homeassistant.components.recorder.models import state
+from homeassistant.components.alarm_control_panel import (
+    DOMAIN as PLATFORM,  # type: ignore  # noqa: PGH003
+)
 from homeassistant.const import (
     ATTR_CODE,
     ATTR_NAME,
 )
 from homeassistant.core import (
-    Config,
     HomeAssistant,
     ServiceCall,
-    asyncio,
+    asyncio,  # noqa: F811, PGH003 # type: ignore
     callback,
 )
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.discovery import async_load_platform
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
@@ -43,21 +34,12 @@ from homeassistant.helpers.dispatcher import (
 from homeassistant.helpers.service import (
     async_register_admin_service,
 )
-from homeassistant.helpers.typing import ConfigType
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.util import dt as dt_util
-
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from . import const
 from .ai import AIHASSComponent, optimize_home
 from .alarm_control_panel import createalarm
 from .automations import AutomationHandler
-from .binary_sensor import (
-    binarymedalertsensor,
-    renteroccupiedsensor,
-    sleepingsensor,
-    someonehomesensor,
-)
 from .card import async_register_card
 from .const import (
     CONF_SYSTEMID,
@@ -68,7 +50,7 @@ from .const import (
 )
 from .deviceclassgroupsync import async_setup_devicegroup
 from .event import EventHandler
-from .lightgroup import async_setup_lightgroup_entry
+from .MotionSensorGrouper import MotionSensorGrouper
 from .mqtt import MqttHandler
 from .panel import (
     async_register_panel,
@@ -83,8 +65,6 @@ from .sensors import (
 )
 from .store import async_get_registry
 from .websockets import async_register_websockets
-from .light_groups import create_light_groups_by_area
-from .MotionSensorGrouper import MotionSensorGrouper
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -93,37 +73,34 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class HASSComponent:
+    """Hasscomponent."""
+
     # Class-level property to hold the hass instance
     hass_instance = None
 
     @classmethod
     def set_hass(cls, hass: HomeAssistant) -> None:
+        """Set Hass."""
         cls.hass_instance = hass
 
     @classmethod
     def get_hass(cls):
+        """Get Hass."""
         return cls.hass_instance
 
 
-async def async_setup(hass, config) -> bool:
+async def async_setup(hass, config) -> bool:  # noqa: ANN001
     """Track states and offer events for sensors."""
     HASSComponent.set_hass(hass)
 
     _LOGGER.info("Setting up effortlesshome binary sensors integration")
-
-    # await hass.helpers.discovery.async_load_platform('sensor', const.DOMAIN , {}, config)
     await hass.helpers.discovery.async_load_platform(
         "binary_sensor", const.DOMAIN, {}, config
     )
 
-    await async_setup_devicegroup(hass, config)
-    await create_light_groups_by_area(hass)
+    _LOGGER.info("Setting up effortlesshome light integration")
 
-    # Initialize the Motion Sensor Grouper
-    grouper = MotionSensorGrouper(hass)
-
-    # Create groups for motion sensors
-    await grouper.create_sensor_groups()
+    await hass.helpers.discovery.async_load_platform("light", const.DOMAIN, {}, config)
 
     AIHASSComponent.set_hass(hass)
 
@@ -189,10 +166,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool | N
     hass.data[DOMAIN]["GoodnightRanForDay"] = "Off"
     hass.data[DOMAIN]["IsRenterOccupied"] = "Off"
 
+    # Initialize the Motion Sensor Grouper
+    grouper = MotionSensorGrouper(hass)
+
+    # Create groups for motion sensors
+    await grouper.create_sensor_groups()
+    await grouper.create_security_sensor_group()
+
     return True
 
 
-async def async_unload_entry(hass, entry) -> bool:
+async def async_unload_entry(hass, entry) -> bool:  # noqa: ANN001
     """Unload effortlesshome config entry."""
     unload_ok = all(
         await asyncio.gather(
@@ -208,7 +192,7 @@ async def async_unload_entry(hass, entry) -> bool:
     return True
 
 
-async def async_remove_entry(hass, entry) -> None:
+async def async_remove_entry(hass, entry) -> None:  # noqa: ANN001, ARG001
     """Remove effortlesshome config entry."""
     async_unregister_panel(hass)
     coordinator = hass.data[const.DOMAIN]["coordinator"]
@@ -216,10 +200,10 @@ async def async_remove_entry(hass, entry) -> None:
     del hass.data[const.DOMAIN]
 
 
-class effortlesshomeCoordinator(DataUpdateCoordinator):
+class effortlesshomeCoordinator(DataUpdateCoordinator):  # noqa: N801
     """Define an object to hold effortlesshome device."""
 
-    def __init__(self, hass, session, entry, store) -> None:
+    def __init__(self, hass, session, entry, store) -> None:  # noqa: ANN001, ARG002
         """Initialize."""
         self.id = entry.unique_id
         self.hass = hass
@@ -238,6 +222,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
 
     @callback
     def setup_alarm_entities(self) -> None:
+        """Setup alarm entities."""
         self.hass.data[const.DOMAIN]["sensor_handler"] = SensorHandler(self.hass)
         self.hass.data[const.DOMAIN]["automation_handler"] = AutomationHandler(
             self.hass
@@ -256,7 +241,8 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
                 self.hass, "effortlesshome_register_master", config["master"]
             )
 
-    async def async_update_config(self, data) -> None:
+    async def async_update_config(self, data) -> None:  # noqa: ANN001
+        """Update config."""
         if "master" in data:
             old_config = self.store.async_get_config()
             if old_config[const.ATTR_MASTER] != data["master"]:
@@ -280,7 +266,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         self.store.async_update_config(data)
         async_dispatcher_send(self.hass, "effortlesshome_config_updated")
 
-    async def async_update_area_config(
+    async def async_update_area_config(  # noqa: D102, PLR0912
         self, area_id: str | None = None, data: dict | None = None
     ) -> None:
         if data is None:
@@ -306,7 +292,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
                 async_dispatcher_send(self.hass, "effortlesshome_automations_updated")
 
             self.store.async_delete_area(area_id)
-            await self.async_remove_entity(area_id)
+            await self.async_remove_entity(area_id)  # type: ignore  # noqa: PGH003
 
             if (
                 len(self.store.async_get_areas()) == 1
@@ -322,7 +308,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
                     self.hass, "effortlesshome_config_updated", area_id
                 )
             else:
-                await self.async_remove_entity(area_id)
+                await self.async_remove_entity(area_id)  # type: ignore  # noqa: PGH003
                 async_dispatcher_send(
                     self.hass, "effortlesshome_register_entity", entry
                 )
@@ -339,6 +325,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
                 )
 
     def async_update_sensor_config(self, entity_id: str, data: dict) -> None:
+        """Update sensor config."""
         group = None
         if ATTR_GROUP in data:
             group = data[ATTR_GROUP]
@@ -349,23 +336,23 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
             new_entity_id = data[ATTR_NEW_ENTITY_ID]
             del data[ATTR_NEW_ENTITY_ID]
             self.store.async_delete_sensor(entity_id)
-            self.assign_sensor_to_group(new_entity_id, group)
-            self.assign_sensor_to_group(entity_id, None)
+            self.assign_sensor_to_group(new_entity_id, group)  # type: ignore  # noqa: PGH003
+            self.assign_sensor_to_group(entity_id, None)  # type: ignore  # noqa: PGH003
             entity_id = new_entity_id
 
         if const.ATTR_REMOVE in data:
             self.store.async_delete_sensor(entity_id)
-            self.assign_sensor_to_group(entity_id, None)
+            self.assign_sensor_to_group(entity_id, None)  # type: ignore  # noqa: PGH003
         elif self.store.async_get_sensor(entity_id):
             self.store.async_update_sensor(entity_id, data)
-            self.assign_sensor_to_group(entity_id, group)
+            self.assign_sensor_to_group(entity_id, group)  # type: ignore  # noqa: PGH003
         else:
             self.store.async_create_sensor(entity_id, data)
-            self.assign_sensor_to_group(entity_id, group)
+            self.assign_sensor_to_group(entity_id, group)  # type: ignore  # noqa: PGH003
 
         async_dispatcher_send(self.hass, "effortlesshome_sensors_updated")
 
-    def async_update_user_config(
+    def async_update_user_config(  # noqa: D102
         self, user_id: str | None = None, data: dict | None = None
     ) -> bool | None:
         if data is None:
@@ -400,6 +387,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         return None
 
     def async_authenticate_user(self, code: str, user_id: str | None = None):
+        """Authenticate user."""
         if not user_id:
             users = self.store.async_get_users()
         else:
@@ -411,13 +399,13 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
             if not user[ATTR_CODE] and not code:
                 return user
             if user[ATTR_CODE]:
-                hash = base64.b64decode(user[ATTR_CODE])
+                hash = base64.b64decode(user[ATTR_CODE])  # noqa: A001
                 if bcrypt.checkpw(code.encode("utf-8"), hash):
                     return user
 
         return None
 
-    def async_update_automation_config(
+    def async_update_automation_config(  # noqa: D102
         self, automation_id: str | None = None, data: dict | None = None
     ) -> None:
         if data is None:
@@ -432,9 +420,11 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         async_dispatcher_send(self.hass, "effortlesshome_automations_updated")
 
     def register_events(self) -> None:
+        """Register events."""
+
         # handle push notifications with action buttons
         @callback
-        async def async_handle_push_event(event) -> None:
+        async def async_handle_push_event(event) -> None:  # noqa: ANN001
             if not event.data:
                 return
             action = (
@@ -459,9 +449,9 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
                 return
 
             arm_mode = (
-                alarm_entity._revert_state
-                if alarm_entity._revert_state in const.ARM_MODES
-                else alarm_entity._arm_mode
+                alarm_entity._revert_state  # noqa: SLF001
+                if alarm_entity._revert_state in const.ARM_MODES  # noqa: SLF001
+                else alarm_entity._arm_mode  # noqa: SLF001
             )
             res = re.search(r"^effortlesshome_ARM_", action)
             if res:
@@ -496,6 +486,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         )
 
     async def async_remove_entity(self, area_id: str) -> None:
+        """Remove entity."""
         entity_registry = er.async_get(self.hass)
         if area_id == "master":
             entity = self.hass.data[const.DOMAIN]["master"]
@@ -512,11 +503,13 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         return list(groups.values())
 
     def async_get_group_for_sensor(self, entity_id: str):
+        """Get group for sensor."""
         groups = self.async_get_sensor_groups()
         result = next((el for el in groups if entity_id in el[ATTR_ENTITIES]), None)
         return result["group_id"] if result else None
 
     def assign_sensor_to_group(self, entity_id: str, group_id: str) -> None:
+        """Assign sensor to group."""
         updated = False
         old_group = self.async_get_group_for_sensor(entity_id)
         if old_group and group_id != old_group:
@@ -545,7 +538,7 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
         if updated:
             async_dispatcher_send(self.hass, "effortlesshome_sensors_updated")
 
-    def async_update_sensor_group_config(
+    def async_update_sensor_group_config(  # noqa: D102
         self, group_id: str | None = None, data: dict | None = None
     ) -> None:
         if data is None:
@@ -583,11 +576,11 @@ class effortlesshomeCoordinator(DataUpdateCoordinator):
 
 
 @callback
-def register_services(hass) -> None:
+def register_services(hass: HomeAssistant) -> None:
     """Register services used by effortlesshome component."""
     coordinator = hass.data[const.DOMAIN]["coordinator"]
 
-    async def async_srv_toggle_user(call) -> None:
+    async def async_srv_toggle_user(call) -> None:  # noqa: ANN001
         """Enable a user by service call."""
         name = call.data.get(ATTR_NAME)
         enable = call.service == const.SERVICE_ENABLE_USER
@@ -627,7 +620,9 @@ def register_services(hass) -> None:
 
 
 @callback
-def register_security_services(hass) -> None:
+def register_security_services(hass) -> None:  # noqa: ANN001
+    """Register security services."""
+
     @callback
     async def createeventservice(call: ServiceCall) -> None:
         await createevent(call)
@@ -660,11 +655,16 @@ def register_security_services(hass) -> None:
     async def confirmpendingalarmservice(call: ServiceCall) -> None:
         await createalarm(call)
 
+    @callback
+    async def loaddevicegroupservice(call: ServiceCall) -> None:
+        await loaddevicegroups(call)
+
     # Register our service with Home Assistant.
     hass.services.async_register(DOMAIN, "createeventservice", createevent)
     hass.services.async_register(DOMAIN, "cancelalarmservice", cancelalarm)
     hass.services.async_register(DOMAIN, "getalarmstatusservice", getalarmstatus)
     hass.services.async_register(DOMAIN, "getplanstatusservice", getPlanStatus)
+    hass.services.async_register(DOMAIN, "loaddevicegroupservice", loaddevicegroups)
     hass.services.async_register(
         DOMAIN, "changemedicalalertstateservice", changemedicalalertstate
     )
@@ -677,7 +677,8 @@ def register_security_services(hass) -> None:
     hass.services.async_register(DOMAIN, "confirmpendingalarmservice", createalarm)
 
 
-async def initialize_eh(hass: HomeAssistant, username, systemid, coordinator) -> bool:
+async def initialize_eh(hass: HomeAssistant, username, systemid, coordinator) -> bool:  # noqa: ANN001
+    """Initialize EH."""
     url = EH_INITIALIZE_API + username + "/" + systemid
     headers = {
         "Accept": "application/json, text/html",
@@ -714,33 +715,45 @@ async def initialize_eh(hass: HomeAssistant, username, systemid, coordinator) ->
             return False
 
 
-async def changemedicalalertstate(calldata) -> None:
+async def changemedicalalertstate(calldata) -> None:  # noqa: ANN001
+    """Change medical alert state."""
     _LOGGER.debug("change medical alert calldata =" + str(calldata.data))
 
     hass = HASSComponent.get_hass()
-    hass.data[DOMAIN]["MedicalAlertTriggered"] = calldata.data["newstate"]
+    hass.data[DOMAIN]["MedicalAlertTriggered"] = calldata.data["newstate"]  # type: ignore  # noqa: PGH003
 
 
-async def changegoodnightranfordaystate(calldata) -> None:
+async def loaddevicegroups(calldata) -> None:  # noqa: ANN001
+    """Load device groups."""
+    _LOGGER.debug("load device groups calldata =" + str(calldata.data))
+
+    hass = HASSComponent.get_hass()
+    await async_setup_devicegroup(hass)
+
+
+async def changegoodnightranfordaystate(calldata) -> None:  # noqa: ANN001
+    """Change goodnight ran for day state."""
     _LOGGER.debug("change goodnight ran for day calldata =" + str(calldata.data))
 
     hass = HASSComponent.get_hass()
-    hass.data[DOMAIN]["GoodnightRanForDay"] = calldata.data["newstate"]
+    hass.data[DOMAIN]["GoodnightRanForDay"] = calldata.data["newstate"]  # type: ignore  # noqa: PGH003
 
 
-async def changerenteroccupiedstate(calldata) -> None:
+async def changerenteroccupiedstate(calldata) -> None:  # noqa: ANN001
+    """Change renter occupied state."""
     _LOGGER.debug("change renter occupied state calldata =" + str(calldata.data))
 
     hass = HASSComponent.get_hass()
-    hass.data[DOMAIN]["IsRenterOccupied"] = calldata.data["newstate"]
+    hass.data[DOMAIN]["IsRenterOccupied"] = calldata.data["newstate"]  # type: ignore  # noqa: PGH003
 
 
-async def createevent(calldata) -> None:
+async def createevent(calldata) -> None:  # noqa: ANN001
+    """Create event."""
     _LOGGER.debug("create event calldata =" + str(calldata.data))
 
     hass = HASSComponent.get_hass()
 
-    devicestate = hass.states.get(calldata.data["entity_id"])
+    devicestate = hass.states.get(calldata.data["entity_id"])  # type: ignore  # noqa: PGH003
     sensor_device_class = None
     sensor_device_name = None
 
@@ -750,17 +763,15 @@ async def createevent(calldata) -> None:
     if devicestate and devicestate.attributes.get("device_class"):
         sensor_device_class = devicestate.attributes["device_class"]
 
-    _LOGGER.debug("sensor_device_class =" + sensor_device_class)
-    _LOGGER.debug("sensor_device_name =" + sensor_device_name)
-
     if sensor_device_class is not None and sensor_device_name is not None:
         await createevent_internal(sensor_device_name, sensor_device_class)
 
 
-async def createevent_internal(sensor_device_name, sensor_device_class):
+async def createevent_internal(sensor_device_name, sensor_device_class):  # noqa: ANN001
+    """Create event internal."""
     hass = HASSComponent.get_hass()
 
-    alarmstate = hass.states.get("effortlesshome.alarm_id")
+    alarmstate = hass.states.get("effortlesshome.alarm_id")  # type: ignore  # noqa: PGH003
 
     jsonpayload = (
         '{ "sensor_device_class":"'
@@ -771,15 +782,15 @@ async def createevent_internal(sensor_device_name, sensor_device_class):
     )
 
     if alarmstate is not None:
-        alarmstatus = hass.states.get("effortlesshome.alarmstatus").state
+        alarmstatus = hass.states.get("effortlesshome.alarmstatus").state  # type: ignore  # noqa: PGH003
 
         if alarmstatus == "ACTIVE":
-            alarmid = hass.states.get("effortlesshome.alarm_id").state
+            alarmid = hass.states.get("effortlesshome.alarm_id").state  # type: ignore  # noqa: PGH003
             _LOGGER.debug("alarm id =" + alarmid)
 
             """Call the API to create event."""
-            systemid = hass.data[const.DOMAIN]["systemid"]
-            eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]
+            systemid = hass.data[const.DOMAIN]["systemid"]  # type: ignore  # noqa: PGH003
+            eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]  # type: ignore  # noqa: PGH003
 
             url = EH_SECURITY_API + "createevent/" + alarmid
             headers = {
@@ -807,21 +818,22 @@ async def createevent_internal(sensor_device_name, sensor_device_class):
     return None
 
 
-async def cancelalarm(calldata):
+async def cancelalarm(calldata):  # noqa: ANN001, ARG001
+    """Cancel alarm."""
     hass = HASSComponent.get_hass()
 
     """Call the API to create a medical alarm."""
-    alarmstate = hass.states.get("effortlesshome.alarm_id")
+    alarmstate = hass.states.get("effortlesshome.alarm_id")  # type: ignore  # noqa: PGH003
 
     if alarmstate is not None:
-        alarmstatus = hass.states.get("effortlesshome.alarmstatus").state
+        alarmstatus = hass.states.get("effortlesshome.alarmstatus").state  # type: ignore  # noqa: PGH003
 
         if alarmstatus == "ACTIVE":
-            alarmid = hass.states.get("effortlesshome.alarm_id").state
+            alarmid = hass.states.get("effortlesshome.alarm_id").state  # type: ignore  # noqa: PGH003
             _LOGGER.debug("alarm id =" + alarmid)
 
-            systemid = hass.data[const.DOMAIN]["systemid"]
-            eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]
+            systemid = hass.data[const.DOMAIN]["systemid"]  # type: ignore  # noqa: PGH003
+            eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]  # type: ignore  # noqa: PGH003
 
             url = EH_SECURITY_API + "cancelalarm/" + alarmid
             headers = {
@@ -845,18 +857,19 @@ async def cancelalarm(calldata):
     return None
 
 
-async def getalarmstatus(calldata):
+async def getalarmstatus(calldata):  # noqa: ANN001, ARG001
+    """Get alarm status."""
     hass = HASSComponent.get_hass()
 
     """Call the API to create a medical alarm."""
 
-    alarmstate = hass.states.get("effortlesshome.alarm_id")
+    alarmstate = hass.states.get("effortlesshome.alarm_id")  # type: ignore  # noqa: PGH003
 
     if alarmstate is not None:
         alarmid = alarmstate.state
 
-        systemid = hass.data[const.DOMAIN]["systemid"]
-        eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]
+        systemid = hass.data[const.DOMAIN]["systemid"]  # type: ignore  # noqa: PGH003
+        eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]  # type: ignore  # noqa: PGH003
 
         url = EH_SECURITY_API + "getalarmstatus/" + alarmid
         headers = {
@@ -878,17 +891,18 @@ async def getalarmstatus(calldata):
                 if content is not None:
                     json_dict = json.loads(content)
                     alarmstatus = json_dict["status"]
-                    hass.states.async_set("effortlesshome.alarmstatus", alarmstatus)
+                    hass.states.async_set("effortlesshome.alarmstatus", alarmstatus)  # type: ignore  # noqa: PGH003
 
                 return content
     return None
 
 
-async def getPlanStatus(calldata):
+async def getPlanStatus(calldata):  # noqa: ANN001, ARG001
+    """Get plan status."""
     hass = HASSComponent.get_hass()
 
-    systemid = hass.data[const.DOMAIN]["systemid"]
-    eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]
+    systemid = hass.data[const.DOMAIN]["systemid"]  # type: ignore  # noqa: PGH003
+    eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]  # type: ignore  # noqa: PGH003
 
     url = EH_SECURITY_API + "getsystemplansbysystemid/" + systemid
     headers = {
@@ -907,7 +921,6 @@ async def getPlanStatus(calldata):
             content = await response.text()
             _LOGGER.debug("API response content: %s", content)
 
-            # content: {"success":true,"meta":{"served_by":"v3-prod","duration":0.2581,"changes":0,"last_row_id":0,"changed_db":false,"size_after":45056,"rows_read":24,"rows_written":0},"results":[{"PlanID":1,"name":"Base Plan"},{"PlanID":2,"name":"Security Plan"},{"PlanID":3,"name":"Monitoring Plan"},{"PlanID":4,"name":"Medical Alert Plan"}]}
             if content is not None:
                 data = json.loads(content)
 
@@ -920,18 +933,21 @@ async def getPlanStatus(calldata):
                         _LOGGER.debug(f"EH PlanID: {plan_id}, Plan Name: {name}")
 
                         if plan_id == 1:
-                            hass.states.async_set("effortlesshome.activebaseplan", True)
+                            hass.states.async_set("effortlesshome.activebaseplan", True)  # type: ignore  # noqa: PGH003
                         elif plan_id == 2:
-                            hass.states.async_set(
-                                "effortlesshome.activesecurityplan", True
+                            hass.states.async_set(  # type: ignore  # noqa: PGH003
+                                "effortlesshome.activesecurityplan",
+                                True,  # noqa: FBT003, PGH003 # type: ignore
                             )
                         elif plan_id == 3:
-                            hass.states.async_set(
-                                "effortlesshome.activemonitoringplan", True
+                            hass.states.async_set(  # type: ignore  # noqa: PGH003
+                                "effortlesshome.activemonitoringplan",
+                                True,  # noqa: FBT003, PGH003 # type: ignore
                             )
                         elif plan_id == 4:
-                            hass.states.async_set(
-                                "effortlesshome.activemedicalalertplan", True
+                            hass.states.async_set(  # type: ignore  # noqa: PGH003
+                                "effortlesshome.activemedicalalertplan",
+                                True,  # noqa: FBT003, PGH003 # type: ignore
                             )
 
             else:

@@ -1,4 +1,4 @@
-"""Platform for sensor integration."""
+"""Platform for sensor integration."""  # noqa: EXE002
 
 from __future__ import annotations
 
@@ -18,8 +18,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
+    hass: HomeAssistant,  # noqa: ARG001
+    config: ConfigType,  # noqa: ARG001
     add_entities: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
@@ -28,132 +28,25 @@ def setup_platform(
     if discovery_info is None:
         return
 
-    add_entities([binarymedalertsensor()])
-    add_entities([sleepingsensor()])
-    add_entities([someonehomesensor()])
-    add_entities([renteroccupiedsensor()])
-    add_entities([motiongroup()])
-    add_entities([smokegroup()])
-    add_entities([moisturegroup()])
-    add_entities([carbonmonoxidegroup()])
-    add_entities([doorgroup()])
-    add_entities([windowgroup()])
-    add_entities([presencegroup()])
-    add_entities([safetygroup()])
-    add_entities([humiditygroup()])
-    add_entities([runninggroup()])
-    add_entities([temperaturegroup()])
+    add_entities([BinaryMedAlertSensor()])
+    add_entities([SleepingSensor()])
+    add_entities([SomeoneHomeSensor()])
+    add_entities([RenterOccupiedSensor()])
+    add_entities([SmokeGroup()])
+    add_entities([MoistureGroup()])
+    add_entities([CarbonMonoxideGroup()])
+    add_entities([DoorGroup()])
+    add_entities([WindowGroup()])
+    add_entities([SecurityMotionGroup()])
 
 
-class runninggroup(BinarySensorEntity):
+class SecurityMotionGroup(BinarySensorEntity):
     """Representation of a sensor."""
 
-    device_class = "running"
-
-    def __init__(self) -> None:
-        """Initialize the sensor."""
-        self._state = None
-
     @property
-    def name(self) -> str:
-        """Return the name of the sensor."""
-        return "Running Group Sensor"
-
-    @property
-    def icon(self) -> str:
-        return "mdi:washing-machine"
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
-
-    def update(self) -> None:
-        """
-        Fetch new state data for the sensor.
-
-        This is the only method that should fetch new data for Home Assistant.
-        """
-        entity_id = "group.running_sensors_group"
-        sensor_state = self.hass.states.get(entity_id)
-
-        self._state = sensor_state.state
-
-
-class temperaturegroup(BinarySensorEntity):
-    """Representation of a sensor."""
-
-    device_class = "temperature"
-
-    def __init__(self) -> None:
-        """Initialize the sensor."""
-        self._state = None
-
-    @property
-    def name(self) -> str:
-        """Return the name of the sensor."""
-        return "Temperature Group Sensor"
-
-    @property
-    def icon(self) -> str:
-        return "mdi:thermometer"
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
-
-    def update(self) -> None:
-        """
-        Fetch new state data for the sensor.
-
-        This is the only method that should fetch new data for Home Assistant.
-        """
-        entity_id = "group.temperature_sensors_group"
-        sensor_state = self.hass.states.get(entity_id)
-
-        self._state = sensor_state.state
-
-
-class humiditygroup(BinarySensorEntity):
-    """Representation of a sensor."""
-
-    device_class = "humidity"
-
-    def __init__(self) -> None:
-        """Initialize the sensor."""
-        self._state = None
-
-    @property
-    def name(self) -> str:
-        """Return the name of the sensor."""
-        return "Humidity Group Sensor"
-
-    @property
-    def icon(self) -> str:
-        return "mdi:water-percent"
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
-
-    def update(self) -> None:
-        """
-        Fetch new state data for the sensor.
-
-        This is the only method that should fetch new data for Home Assistant.
-        """
-        entity_id = "group.humidity_sensors_group"
-        sensor_state = self.hass.states.get(entity_id)
-
-        self._state = sensor_state.state
-
-
-class presencegroup(BinarySensorEntity):
-    """Representation of a sensor."""
-
-    device_class = "presence"
+    def device_class(self) -> str:
+        """Return the device_class of the sensor."""
+        return "motion"
 
     def __init__(self) -> None:
         """Initialize the sensor."""
@@ -162,14 +55,20 @@ class presencegroup(BinarySensorEntity):
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        return "Presence Group Sensor"
+        return "Security Motion Group Sensor"
+
+    @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
 
     @property
     def icon(self) -> str:
+        """Return the icon of the sensor."""
         return "mdi:motion-sensor"
 
     @property
-    def state(self):
+    def state(self):  # noqa: ANN201
         """Return the state of the sensor."""
         return self._state
 
@@ -179,51 +78,19 @@ class presencegroup(BinarySensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        entity_id = "group.presence_sensors_group"
+        entity_id = "group.security_motion_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state
+        self._state = sensor_state.state  # type: ignore  # noqa: PGH003
 
 
-class safetygroup(BinarySensorEntity):
+class WindowGroup(BinarySensorEntity):
     """Representation of a sensor."""
 
-    device_class = "safety"
-
-    def __init__(self) -> None:
-        """Initialize the sensor."""
-        self._state = "Safe"
-
     @property
-    def name(self) -> str:
-        """Return the name of the sensor."""
-        return "Safety Group Sensor"
-
-    @property
-    def icon(self) -> str:
-        return "mdi:ambulance"
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
-
-    def update(self) -> None:
-        """
-        Fetch new state data for the sensor.
-
-        This is the only method that should fetch new data for Home Assistant.
-        """
-        entity_id = "group.safety_sensors_group"
-        sensor_state = self.hass.states.get(entity_id)
-
-        self._state = sensor_state.state
-
-
-class windowgroup(BinarySensorEntity):
-    """Representation of a sensor."""
-
-    device_class = "window"
+    def device_class(self) -> str:
+        """Return the device_class of the sensor."""
+        return "window"
 
     def __init__(self) -> None:
         """Initialize the sensor."""
@@ -235,11 +102,17 @@ class windowgroup(BinarySensorEntity):
         return "Window Group Sensor"
 
     @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
     def icon(self) -> str:
+        """Return the icon of the sensor."""
         return "mdi:window-closed"
 
     @property
-    def state(self):
+    def state(self):  # noqa: ANN201
         """Return the state of the sensor."""
         return self._state
 
@@ -252,13 +125,16 @@ class windowgroup(BinarySensorEntity):
         entity_id = "group.window_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state
+        self._state = sensor_state.state  # type: ignore  # noqa: PGH003
 
 
-class doorgroup(BinarySensorEntity):
+class DoorGroup(BinarySensorEntity):
     """Representation of a sensor."""
 
-    device_class = "door"
+    @property
+    def device_class(self) -> str:
+        """Return the device_class of the sensor."""
+        return "door"
 
     def __init__(self) -> None:
         """Initialize the sensor."""
@@ -270,11 +146,17 @@ class doorgroup(BinarySensorEntity):
         return "Door Group Sensor"
 
     @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
     def icon(self) -> str:
+        """Return the icon of the sensor."""
         return "mdi:door"
 
     @property
-    def state(self):
+    def state(self):  # noqa: ANN201
         """Return the state of the sensor."""
         return self._state
 
@@ -287,13 +169,16 @@ class doorgroup(BinarySensorEntity):
         entity_id = "group.door_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state
+        self._state = sensor_state.state  # type: ignore  # noqa: PGH003
 
 
-class carbonmonoxidegroup(BinarySensorEntity):
+class CarbonMonoxideGroup(BinarySensorEntity):
     """Representation of a sensor."""
 
-    device_class = "carbon_monoxide"
+    @property
+    def device_class(self) -> str:
+        """Return the device_class of the sensor."""
+        return "carbon_monoxide"
 
     def __init__(self) -> None:
         """Initialize the sensor."""
@@ -305,11 +190,17 @@ class carbonmonoxidegroup(BinarySensorEntity):
         return "Carbon Monoxide Group Sensor"
 
     @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
     def icon(self) -> str:
+        """Return the icon of the sensor."""
         return "mdi:molecule-co"
 
     @property
-    def state(self):
+    def state(self):  # noqa: ANN201
         """Return the state of the sensor."""
         return self._state
 
@@ -322,13 +213,16 @@ class carbonmonoxidegroup(BinarySensorEntity):
         entity_id = "group.carbon_monoxide_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state
+        self._state = sensor_state.state  # type: ignore  # noqa: PGH003
 
 
-class moisturegroup(BinarySensorEntity):
+class MoistureGroup(BinarySensorEntity):
     """Representation of a sensor."""
 
-    device_class = "moisture"
+    @property
+    def device_class(self) -> str:
+        """Return the device_class of the sensor."""
+        return "moisture"
 
     def __init__(self) -> None:
         """Initialize the sensor."""
@@ -340,11 +234,17 @@ class moisturegroup(BinarySensorEntity):
         return "Moisture Group Sensor"
 
     @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
     def icon(self) -> str:
+        """Return the icon of the sensor."""
         return "mdi:water"
 
     @property
-    def state(self):
+    def state(self):  # noqa: ANN201
         """Return the state of the sensor."""
         return self._state
 
@@ -357,13 +257,16 @@ class moisturegroup(BinarySensorEntity):
         entity_id = "group.moisture_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state
+        self._state = sensor_state.state  # type: ignore  # noqa: PGH003
 
 
-class smokegroup(BinarySensorEntity):
+class SmokeGroup(BinarySensorEntity):
     """Representation of a sensor."""
 
-    device_class = "smoke"
+    @property
+    def device_class(self) -> str:
+        """Return the device_class of the sensor."""
+        return "smoke"
 
     def __init__(self) -> None:
         """Initialize the sensor."""
@@ -375,11 +278,17 @@ class smokegroup(BinarySensorEntity):
         return "Smoke Group Sensor"
 
     @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
     def icon(self) -> str:
+        """Return the icon of the sensor."""
         return "mdi:smoke-detector"
 
     @property
-    def state(self):
+    def state(self):  # noqa: ANN201
         """Return the state of the sensor."""
         return self._state
 
@@ -392,49 +301,16 @@ class smokegroup(BinarySensorEntity):
         entity_id = "group.smokealarm_sensors_group"
         smoke_sensor_state = self.hass.states.get(entity_id)
 
-        self._state = smoke_sensor_state.state
+        self._state = smoke_sensor_state.state  # type: ignore  # noqa: PGH003
 
 
-class motiongroup(BinarySensorEntity):
+class BinaryMedAlertSensor(BinarySensorEntity):
     """Representation of a sensor."""
 
-    device_class = "motion"
-
-    def __init__(self) -> None:
-        """Initialize the sensor."""
-        self._state = "Off"
-
     @property
-    def name(self) -> str:
-        """Return the name of the sensor."""
-        return "Motion Group Sensor"
-
-    @property
-    def icon(self) -> str:
-        return "mdi:motion-sensor"
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state
-
-    def update(self) -> None:
-        """
-        Fetch new state data for the sensor.
-
-        This is the only method that should fetch new data for Home Assistant.
-        """
-        # Access the state of the 'binary_sensor.motionsensors' entity
-        entity_id = "group.motion_sensors_group"
-        motion_sensor_state = self.hass.states.get(entity_id)
-
-        self._state = motion_sensor_state.state
-
-
-class binarymedalertsensor(BinarySensorEntity):
-    """Representation of a sensor."""
-
-    device_class = "safety"
+    def device_class(self) -> str:
+        """Return the device_class of the sensor."""
+        return "safety"
 
     def __init__(self) -> None:
         """Initialize the sensor."""
@@ -446,11 +322,17 @@ class binarymedalertsensor(BinarySensorEntity):
         return "Medical Alert Sensor"
 
     @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
     def icon(self) -> str:
+        """Return the icon of the sensor."""
         return "mdi:ambulance"
 
     @property
-    def state(self):
+    def state(self):  # noqa: ANN201
         """Return the state of the sensor."""
         return self._state
 
@@ -463,7 +345,7 @@ class binarymedalertsensor(BinarySensorEntity):
         self._state = self.hass.data[DOMAIN]["MedicalAlertTriggered"]
 
 
-class sleepingsensor(BinarySensorEntity):
+class SleepingSensor(BinarySensorEntity):
     """Representation of a sensor."""
 
     def __init__(self) -> None:
@@ -476,12 +358,18 @@ class sleepingsensor(BinarySensorEntity):
         return "Sleeping Sensor"
 
     @property
-    def state(self):
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
+    def state(self):  # noqa: ANN201
         """Return the state of the sensor."""
         return self._state
 
     @property
     def icon(self) -> str:
+        """Return the icon of the sensor."""
         return "mdi:chat-sleep"
 
     def update(self) -> None:
@@ -493,7 +381,7 @@ class sleepingsensor(BinarySensorEntity):
         self._state = self.hass.data[DOMAIN]["GoodnightRanForDay"]
 
 
-class someonehomesensor(BinarySensorEntity):
+class SomeoneHomeSensor(BinarySensorEntity):
     """Representation of a sensor."""
 
     def __init__(self) -> None:
@@ -506,11 +394,17 @@ class someonehomesensor(BinarySensorEntity):
         return "Someone Home Sensor"
 
     @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
     def icon(self) -> str:
+        """Return the icon of the sensor."""
         return "mdi:account-check"
 
     @property
-    def state(self):
+    def state(self):  # noqa: ANN201
         """Return the state of the sensor."""
         return self._state
 
@@ -523,16 +417,15 @@ class someonehomesensor(BinarySensorEntity):
         home = 0
         for entity_id in self.hass.states.entity_ids("device_tracker"):
             state = self.hass.states.get(entity_id)
-            if state.state == "home":
+            if state.state == "home":  # type: ignore  # noqa: PGH003
                 home = home + 1
 
-        # Access the state of the 'binary_sensor.motionsensors' entity
-        entity_id = "group.window_sensors_group"
+        entity_id = "group.security_motion_sensors_group"
         motion_sensor_state = self.hass.states.get(entity_id)
 
         if (
             home > 0
-            or motion_sensor_state.state == "On"
+            or motion_sensor_state.state == "On"  # type: ignore  # noqa: PGH003
             or self.hass.data[DOMAIN]["IsRenterOccupied"] == "On"
         ):
             self._state = "On"
@@ -540,7 +433,7 @@ class someonehomesensor(BinarySensorEntity):
             self._state = "Off"
 
 
-class renteroccupiedsensor(BinarySensorEntity):
+class RenterOccupiedSensor(BinarySensorEntity):
     """Representation of a sensor."""
 
     def __init__(self) -> None:
@@ -553,12 +446,18 @@ class renteroccupiedsensor(BinarySensorEntity):
         return "Renter Occupied Sensor"
 
     @property
-    def state(self):
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
+    def state(self):  # noqa: ANN201
         """Return the state of the sensor."""
         return self._state
 
     @property
     def icon(self) -> str:
+        """Return the icon of the sensor."""
         return "mdi:bag-suitcase"
 
     def update(self) -> None:

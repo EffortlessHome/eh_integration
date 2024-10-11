@@ -1,14 +1,9 @@
-import homeassistant.core as hass
-import homeassistant.util.dt as dt
-
-
 class AutomationRecommender:
-    def __init__(self, hass_instance):
+    def __init__(self, hass_instance) -> None:
         self.hass = hass_instance
 
     def analyze_entity_history(self, entity_id):
         """Analyzes the history of a given entity and returns insights for automation recommendations."""
-
         history = self.hass.states.get_history(entity_id)
 
         # Extract relevant data from history
@@ -16,17 +11,15 @@ class AutomationRecommender:
         # ... other data extraction as needed
 
         # Analyze data and generate insights
-        insights = {
+        return {
             "frequent_states": self.find_frequent_states(state_changes),
             "state_durations": self.calculate_state_durations(state_changes),
             # ... other insights
         }
 
-        return insights
 
     def find_frequent_states(self, state_changes):
         """Finds the most frequent states of an entity."""
-
         state_counts = {}
         for state, _ in state_changes:
             state_counts[state] = state_counts.get(state, 0) + 1
@@ -35,7 +28,6 @@ class AutomationRecommender:
 
     def calculate_state_durations(self, state_changes):
         """Calculates the durations of different states."""
-
         state_durations = {}
         current_state = None
         start_time = None
@@ -56,7 +48,6 @@ class AutomationRecommender:
 
     def generate_automation_recommendations(self, entity_id, insights):
         """Generates automation recommendations based on the insights."""
-
         recommendations = []
 
         # Example recommendation: suggest a timer-based automation if a state is frequently reached
@@ -74,7 +65,6 @@ class AutomationRecommender:
 
     def run(self, entity_ids):
         """Runs the analysis and generates recommendations for a list of entities."""
-
         recommendations = {}
         for entity_id in entity_ids:
             insights = self.analyze_entity_history(entity_id)

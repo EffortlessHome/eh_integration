@@ -23,7 +23,9 @@ class EventHandler:
         self._subscription()
 
     @callback
-    def async_handle_event(self, event: str, area_id: str, args: dict | None = None) -> None:
+    def async_handle_event(
+        self, event: str, area_id: str, args: dict | None = None
+    ) -> None:
         """Handle event."""
         if args is None:
             args = {}

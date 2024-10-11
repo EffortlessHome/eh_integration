@@ -164,7 +164,10 @@ class SensorHandler:
             self._subscriptions.pop()()
 
     def async_watch_sensor_states(
-        self, area_id: str | None = None, old_state: str | None = None, state: str | None = None
+        self,
+        area_id: str | None = None,
+        old_state: str | None = None,
+        state: str | None = None,
     ) -> None:
         """Watch sensors based on the state of the alarm entities."""
         sensors_list = []
@@ -234,7 +237,9 @@ class SensorHandler:
 
         return entities
 
-    def validate_arming_event(self, area_id: str, target_state: str | None = None, **kwargs):
+    def validate_arming_event(
+        self, area_id: str, target_state: str | None = None, **kwargs
+    ):
         """Check whether all sensors have the correct state prior to arming."""
         use_delay = kwargs.get("use_delay", False)
         bypass_open_sensors = kwargs.get("bypass_open_sensors", False)
@@ -393,9 +398,7 @@ class SensorHandler:
             return open_sensors
 
         group = self._groups[group_id]
-        group_events = (
-            self._group_events.get(group_id, {})
-        )
+        group_events = self._group_events.get(group_id, {})
         now = dt_util.now()
         group_events[entity] = {ATTR_STATE: state, ATTR_LAST_TRIP_TIME: now}
         self._group_events[group_id] = group_events

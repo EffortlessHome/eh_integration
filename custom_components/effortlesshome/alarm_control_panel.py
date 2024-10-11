@@ -226,9 +226,10 @@ async def createsecurityalarm(sensor_device_class: str, sensor_device_name: str)
 
     _LOGGER.debug("Calling create alarm API with payload: %s", payload)
 
-    async with aiohttp.ClientSession() as session, session.post(
-        url, headers=headers, json=json.loads(payload)
-    ) as response:
+    async with (
+        aiohttp.ClientSession() as session,
+        session.post(url, headers=headers, json=json.loads(payload)) as response,
+    ):
         _LOGGER.debug("API response status: %s", response.status)
         _LOGGER.debug("API response headers: %s", response.headers)
         content = await response.text()
@@ -262,9 +263,10 @@ async def createmonitoringalarm(sensor_device_class: str, sensor_device_name: st
 
     _LOGGER.info("Calling create monitoring alarm API with payload: %s", payload)
 
-    async with aiohttp.ClientSession() as session, session.post(
-        url, headers=headers, json=json.loads(payload)
-    ) as response:
+    async with (
+        aiohttp.ClientSession() as session,
+        session.post(url, headers=headers, json=json.loads(payload)) as response,
+    ):
         _LOGGER.debug("API response status: %s", response.status)
         _LOGGER.debug("API response headers: %s", response.headers)
         content = await response.text()
@@ -298,9 +300,10 @@ async def createmedicalalarm(sensor_device_class: str, sensor_device_name: str):
 
     _LOGGER.info("Calling create medical alert alarm API with payload: %s", payload)
 
-    async with aiohttp.ClientSession() as session, session.post(
-        url, headers=headers, json=json.loads(payload)
-    ) as response:
+    async with (
+        aiohttp.ClientSession() as session,
+        session.post(url, headers=headers, json=json.loads(payload)) as response,
+    ):
         _LOGGER.debug("API response status: %s", response.status)
         _LOGGER.debug("API response headers: %s", response.headers)
         content = await response.text()
@@ -422,7 +425,9 @@ async def async_setup(hass, config) -> bool:
     return True
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None) -> bool:
+async def async_setup_platform(
+    hass, config, async_add_entities, discovery_info=None
+) -> bool:
     """Set up the platform from config."""
     HASSComponent.set_hass(hass)
     return True
@@ -644,7 +649,8 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
                 and not self._config[ATTR_CODE_ARM_REQUIRED]
             )
             or (
-                STATE_ALARM_DISARMED not in (to_state, self._state) and not self._config[const.ATTR_CODE_MODE_CHANGE_REQUIRED]
+                STATE_ALARM_DISARMED not in (to_state, self._state)
+                and not self._config[const.ATTR_CODE_MODE_CHANGE_REQUIRED]
             )
         ):
             self._changed_by = None
@@ -751,7 +757,9 @@ class effortlesshomeBaseEntity(AlarmControlPanelEntity, RestoreEntity):
         return True
 
     @callback
-    def async_service_arm_handler(self, code, mode, skip_delay, force, context_id=None) -> None:
+    def async_service_arm_handler(
+        self, code, mode, skip_delay, force, context_id=None
+    ) -> None:
         """Handle external arm request from effortlesshome.arm service."""
         _LOGGER.debug("Service effortlesshome.arm was called")
 
@@ -1182,7 +1190,9 @@ class effortlesshomeAreaEntity(effortlesshomeBaseEntity):
         return True
 
     @callback
-    def async_trigger(self, skip_delay: bool = False, open_sensors: dict | None = None) -> None:
+    def async_trigger(
+        self, skip_delay: bool = False, open_sensors: dict | None = None
+    ) -> None:
         """Trigger request. Will only be called the first time a sensor trips."""
         if self._state == STATE_ALARM_PENDING or skip_delay or not self._arm_mode:
             entry_delay = 0
@@ -1356,7 +1366,9 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
         async_update_config()
 
         @callback
-        def async_alarm_state_changed(area_id: str, old_state: str, new_state: str) -> None:
+        def async_alarm_state_changed(
+            area_id: str, old_state: str, new_state: str
+        ) -> None:
             if not area_id:
                 return
             self.async_update_state()
@@ -1366,7 +1378,9 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
         )
 
         @callback
-        def async_handle_event(event: str, area_id: str, args: dict | None = None) -> None:
+        def async_handle_event(
+            event: str, area_id: str, args: dict | None = None
+        ) -> None:
             if args is None:
                 args = {}
             if not area_id or event not in [
@@ -1617,7 +1631,9 @@ class effortlesshomeMasterEntity(effortlesshomeBaseEntity):
         self.schedule_update_ha_state()
 
     @callback
-    def async_trigger(self, skip_delay: bool = False, _open_sensors: dict | None = None) -> None:
+    def async_trigger(
+        self, skip_delay: bool = False, _open_sensors: dict | None = None
+    ) -> None:
         """Handle triggering via service call."""
         for item in self.hass.data[const.DOMAIN]["areas"].values():
             if item.state != self._revert_state:

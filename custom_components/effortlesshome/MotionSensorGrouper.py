@@ -1,5 +1,5 @@
-import logging
-from homeassistant.components.group import DOMAIN as GROUP_DOMAIN
+import logging  # noqa: D100, EXE002, N999
+
 from homeassistant.helpers import entity_registry
 
 _LOGGER = logging.getLogger(__name__)
@@ -10,19 +10,15 @@ DOMAIN = "motion_sensor_groups"
 class MotionSensorGrouper:
     """Class to group motion sensors by area."""
 
-    def __init__(self, hass):
+    def __init__(self, hass) -> None:  # noqa: ANN001
         """Initialize the motion sensor grouper."""
         self.hass = hass
 
-    async def create_sensor_groups(self):
+    async def create_sensor_groups(self) -> None:
         """Create groups of motion sensors by area."""
         # Get all areas from Home Assistant
 
         areas = self.hass.helpers.area_registry.async_get()
-        # area_list = areas.async_list_areas()
-
-        # Get all entities from Home Assistant
-        # entities = await self.hass.helpers.entity_registry.async_get_registry()
 
         # Get entity registry to find light entities
         entities = entity_registry.async_get(self.hass)
@@ -33,16 +29,31 @@ class MotionSensorGrouper:
             motion_sensors = [
                 entity.entity_id
                 for entity in entities.entities.values()
-                if entity.device_class == "motion" and entity.area_id == area_id
+                if (entity.original_device_class in ("motion", "occupancy", "presence"))
+                and entity.area_id == area_id
             ]
 
-            if motion_sensors:
-                group_name = (
-                    f"group.motion_sensors_{area.name.lower().replace(' ', '_')}"
-                )
-                await self._create_group(group_name, motion_sensors)
+            # if motion_sensors:
+            group_name = f"group.motion_sensors_{area.name.lower().replace(' ', '_')}"
+            await self._create_group(group_name, motion_sensors)
 
-    async def _create_group(self, group_name, entity_ids):
+    async def create_security_sensor_group(self) -> None:
+        """Create a group of motion sensors for security alarm."""
+        # Get all areas from Home Assistant
+
+        # Get entity registry to find light entities
+        entities = entity_registry.async_get(self.hass)
+
+        motion_sensors = [
+            entity.entity_id
+            for entity in entities.entities.values()
+            if (entity.original_device_class in ("motion", "occupancy", "presence"))
+            and entity.area_id != "yard"
+        ]
+
+        await self._create_group("group.security_motion_sensors_group", motion_sensors)
+
+    async def _create_group(self, group_name, entity_ids) -> None:  # noqa: ANN001
         """Create a group of entities in Home Assistant."""
         service_data = {
             "object_id": group_name.split(".")[-1],
@@ -52,4 +63,4 @@ class MotionSensorGrouper:
 
         # Call Home Assistant service to create the group
         await self.hass.services.async_call("group", "set", service_data, blocking=True)
-        _LOGGER.info(f"Group {group_name} created with entities: {entity_ids}")
+        _LOGGER.debug(f"Group {group_name} created with entities: {entity_ids}")  # noqa: G004

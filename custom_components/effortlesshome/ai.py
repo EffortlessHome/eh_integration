@@ -4,6 +4,7 @@ from datetime import timedelta
 # import numpy as np
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+
 # from sklearn.cluster import KMeans
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,12 +56,12 @@ def fetch_history_data(hass, entity_id, days=30):  # noqa: ANN201
     return history_data
 
 
-def analyze_data(history_data):
+def analyze_data(history_data) -> None:
     """Analyze the history data using KMeans clustering to detect patterns."""
     _LOGGER.debug("In analyze data")
 
-    timestamps = [state.last_updated for state in history_data]
-    values = [state.state for state in history_data]
+    [state.last_updated for state in history_data]
+    [state.state for state in history_data]
 
     # Convert timestamps and values to numpy arrays
     # X = np.array(list(zip(timestamps, values, strict=False)))

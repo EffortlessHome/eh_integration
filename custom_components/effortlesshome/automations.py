@@ -56,7 +56,11 @@ def validate_modes(trigger, mode):
 def validate_trigger(trigger, to_state, from_state=None) -> bool:
     if const.ATTR_EVENT not in trigger:
         return False
-    return bool(trigger[const.ATTR_EVENT] == "untriggered" and from_state == "triggered" or trigger[const.ATTR_EVENT] == to_state)
+    return bool(
+        trigger[const.ATTR_EVENT] == "untriggered"
+        and from_state == "triggered"
+        or trigger[const.ATTR_EVENT] == to_state
+    )
 
 
 class AutomationHandler:
@@ -124,7 +128,9 @@ class AutomationHandler:
         )
 
         @callback
-        async def async_handle_event(event: str, area_id: str, args: dict | None = None) -> None:
+        async def async_handle_event(
+            event: str, area_id: str, args: dict | None = None
+        ) -> None:
             if args is None:
                 args = {}
             if event != const.EVENT_FAILED_TO_ARM:
@@ -325,7 +331,6 @@ class AutomationHandler:
 
         name = friendly_name_for_entity_id(entity_id, self.hass)
         return string.replace("{entity_name}", name)
-
 
     async def async_get_arm_mode_string(self, arm_mode: str, language: str):
         """Get translation for alarm arm mode."""
