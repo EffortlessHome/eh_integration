@@ -49,6 +49,8 @@ class MotionSensorGrouper:
             for entity in entities.entities.values()
             if (entity.original_device_class in ("motion", "occupancy", "presence"))
             and entity.area_id != "yard"
+            and entity.entity_id != "binary_sensor.security_motion_sensors_group"
+            and entity.entity_id != "group.security_motion_sensors_group"
         ]
 
         await self._create_group("group.security_motion_sensors_group", motion_sensors)
