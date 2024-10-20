@@ -81,7 +81,10 @@ class SecurityMotionGroup(BinarySensorEntity):
         entity_id = "group.security_motion_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state  # type: ignore  # noqa: PGH003
+        if sensor_state != None:
+            self._state = sensor_state.state  # type: ignore  # noqa: PGH003
+        else:
+            sensor_state = "Unknown"
 
 
 class WindowGroup(BinarySensorEntity):
@@ -125,7 +128,10 @@ class WindowGroup(BinarySensorEntity):
         entity_id = "group.window_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state  # type: ignore  # noqa: PGH003
+        if sensor_state != None:
+            self._state = sensor_state.state  # type: ignore  # noqa: PGH003
+        else:
+            sensor_state = "Unknown"
 
 
 class DoorGroup(BinarySensorEntity):
@@ -169,7 +175,10 @@ class DoorGroup(BinarySensorEntity):
         entity_id = "group.door_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state  # type: ignore  # noqa: PGH003
+        if sensor_state != None:
+            self._state = sensor_state.state  # type: ignore  # noqa: PGH003
+        else:
+            sensor_state = "Unknown"
 
 
 class CarbonMonoxideGroup(BinarySensorEntity):
@@ -213,7 +222,10 @@ class CarbonMonoxideGroup(BinarySensorEntity):
         entity_id = "group.carbon_monoxide_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state  # type: ignore  # noqa: PGH003
+        if sensor_state != None:
+            self._state = sensor_state.state  # type: ignore  # noqa: PGH003
+        else:
+            sensor_state = "Unknown"
 
 
 class MoistureGroup(BinarySensorEntity):
@@ -257,7 +269,10 @@ class MoistureGroup(BinarySensorEntity):
         entity_id = "group.moisture_sensors_group"
         sensor_state = self.hass.states.get(entity_id)
 
-        self._state = sensor_state.state  # type: ignore  # noqa: PGH003
+        if sensor_state != None:
+            self._state = sensor_state.state  # type: ignore  # noqa: PGH003
+        else:
+            sensor_state = "Unknown"
 
 
 class SmokeGroup(BinarySensorEntity):
@@ -299,9 +314,12 @@ class SmokeGroup(BinarySensorEntity):
         This is the only method that should fetch new data for Home Assistant.
         """
         entity_id = "group.smokealarm_sensors_group"
-        smoke_sensor_state = self.hass.states.get(entity_id)
+        sensor_state = self.hass.states.get(entity_id)
 
-        self._state = smoke_sensor_state.state  # type: ignore  # noqa: PGH003
+        if sensor_state != None:
+            self._state = sensor_state.state  # type: ignore  # noqa: PGH003
+        else:
+            sensor_state = "Unknown"
 
 
 class BinaryMedAlertSensor(BinarySensorEntity):
@@ -342,7 +360,10 @@ class BinaryMedAlertSensor(BinarySensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        self._state = self.hass.data[DOMAIN]["MedicalAlertTriggered"]
+        try:
+            self._state = self.hass.data[DOMAIN]["MedicalAlertTriggered"]
+        except:
+            self._state = "Unknown"
 
 
 class SleepingSensor(BinarySensorEntity):
@@ -378,7 +399,10 @@ class SleepingSensor(BinarySensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        self._state = self.hass.data[DOMAIN]["GoodnightRanForDay"]
+        try:
+            self._state = self.hass.data[DOMAIN]["GoodnightRanForDay"]
+        except:
+            self._state = "Unknown"
 
 
 class SomeoneHomeSensor(BinarySensorEntity):
@@ -423,6 +447,11 @@ class SomeoneHomeSensor(BinarySensorEntity):
         entity_id = "group.security_motion_sensors_group"
         motion_sensor_state = self.hass.states.get(entity_id)
 
+        if motion_sensor_state != None:
+            self._state = motion_sensor_state.state  # type: ignore  # noqa: PGH003
+        else:
+            self._state = "Unknown"
+
         if (
             home > 0
             or motion_sensor_state.state == "On"  # type: ignore  # noqa: PGH003
@@ -466,4 +495,7 @@ class RenterOccupiedSensor(BinarySensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        self._state = self.hass.data[DOMAIN]["IsRenterOccupied"]
+        try:
+            self._state = self.hass.data[DOMAIN]["IsRenterOccupied"]
+        except:
+            self._state = "Unknown"

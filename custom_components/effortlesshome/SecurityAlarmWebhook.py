@@ -75,4 +75,4 @@ class SecurityAlarmWebhook:
 
 async def async_remove(self) -> None:
     """Unregister the webhook when the integration is removed."""
-    async_unregister(self.hass, self.webhook_id)  # type: ignore # noqa: F821
+    async_unregister(self.hass, "alarmwebhook")  # type: ignore # noqa: F821

@@ -8,9 +8,11 @@ import json
 import logging
 import re
 from typing import TYPE_CHECKING
-
+import homeassistant.core
 import aiohttp
 import bcrypt
+import subprocess
+
 from homeassistant.components.alarm_control_panel import (
     DOMAIN as PLATFORM,  # type: ignore  # noqa: PGH003
 )
@@ -57,6 +59,7 @@ from .panel import (
     async_unregister_panel,
 )
 from .SecurityAlarmWebhook import SecurityAlarmWebhook
+from .SecurityAlarmWebhook import async_remove
 from .sensors import (
     ATTR_ENTITIES,
     ATTR_GROUP,
@@ -102,6 +105,9 @@ async def async_setup(hass, config) -> bool:  # noqa: ANN001
 
     await hass.helpers.discovery.async_load_platform("light", const.DOMAIN, {}, config)
 
+    # Load the group platform
+    await hass.helpers.discovery.async_load_platform("group", const.DOMAIN, {}, config)
+
     AIHASSComponent.set_hass(hass)
 
     @callback
@@ -109,6 +115,24 @@ async def async_setup(hass, config) -> bool:  # noqa: ANN001
         await optimize_home(call)
 
     hass.services.async_register(DOMAIN, "createoptimizehomeservice", optimize_home)
+
+    @callback
+    async def createcleanmotionfilesservice(call: ServiceCall) -> None:
+        await cleanmotionfiles(call)
+
+    hass.services.async_register(
+        DOMAIN, "createcleanmotionfilesservice", cleanmotionfiles
+    )
+
+    async def after_home_assistant_started(event):
+        """Call this function after Home Assistant has started."""
+        # Call your function here
+        await loaddevicegroups(None)
+
+    # Listen for the 'homeassistant_started' event
+    hass.bus.async_listen_once(
+        homeassistant.core.EVENT_HOMEASSISTANT_STARTED, after_home_assistant_started
+    )
 
     return True
 
@@ -189,6 +213,9 @@ async def async_unload_entry(hass, entry) -> bool:  # noqa: ANN001
     async_unregister_panel(hass)
     coordinator = hass.data[const.DOMAIN]["coordinator"]
     await coordinator.async_unload()
+
+    await SecurityAlarmWebhook.async_remove(hass)
+
     return True
 
 
@@ -691,7 +718,7 @@ async def initialize_eh(hass: HomeAssistant, username, systemid, coordinator) ->
             content = await response.text()
             _LOGGER.debug("API response content: %s", content)
 
-            if response.status == 200:  # noqa: PLR2004
+            if response.status == 200 and content != None:  # noqa: PLR2004
                 parsed_data = json.loads(content)
 
                 hass.states.async_set(
@@ -890,6 +917,29 @@ async def getalarmstatus(calldata):  # noqa: ANN001, ANN201, ARG001
     return None
 
 
+async def cleanmotionfiles(calldata):
+    """Execute the shell command to delete old snapshots."""
+
+    age = "30"
+
+    try:
+        age = calldata.data["age"]
+    except:
+        _LOGGER.error("Invalid Args To Clean Motion Service. Using Default 30 days")
+
+    command = "find /media/snapshots/* -mtime +" + age + " -exec rm {} \\;"
+
+    # Use subprocess to execute the shell command
+    process = subprocess.run(
+        command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+
+    if process.returncode == 0:
+        _LOGGER.info("Successfully deleted old snapshots.")
+    else:
+        _LOGGER.error(f"Error deleting snapshots: {process.stderr.decode()}")
+
+
 async def getPlanStatus(calldata):  # noqa: ANN001, ANN201, ARG001, N802
     """Get plan status."""
     hass = HASSComponent.get_hass()
@@ -922,25 +972,30 @@ async def getPlanStatus(calldata):  # noqa: ANN001, ANN201, ARG001, N802
                 for result in data["results"]:
                     plan_id = result.get("PlanID")
                     name = result.get("name")
+                    active = result.get("active")
                     if plan_id is not None:
-                        _LOGGER.debug(f"EH PlanID: {plan_id}, Plan Name: {name}")  # noqa: G004
+                        _LOGGER.debug(
+                            f"EH PlanID: {plan_id}, Plan Name: {name}, Active: {active}"
+                        )  # noqa: G004
 
                         if plan_id == 1:
-                            hass.states.async_set("effortlesshome.activebaseplan", True)  # type: ignore  # noqa: FBT003, PGH003
+                            hass.states.async_set(
+                                "effortlesshome.activebaseplan", active == 1
+                            )  # type: ignore  # noqa: FBT003, PGH003
                         elif plan_id == 2:  # noqa: PLR2004
                             hass.states.async_set(  # type: ignore  # noqa: PGH003
                                 "effortlesshome.activesecurityplan",
-                                True,  # noqa: FBT003, PGH003 # type: ignore
+                                active == 1,  # noqa: FBT003, PGH003 # type: ignore
                             )
                         elif plan_id == 3:  # noqa: PLR2004
                             hass.states.async_set(  # type: ignore  # noqa: PGH003
                                 "effortlesshome.activemonitoringplan",
-                                True,  # noqa: FBT003, PGH003 # type: ignore
+                                active == 1,  # noqa: FBT003, PGH003 # type: ignore
                             )
                         elif plan_id == 4:  # noqa: PLR2004
                             hass.states.async_set(  # type: ignore  # noqa: PGH003
                                 "effortlesshome.activemedicalalertplan",
-                                True,  # noqa: FBT003, PGH003 # type: ignore
+                                active == 1,  # noqa: FBT003, PGH003 # type: ignore
                             )
 
             else:

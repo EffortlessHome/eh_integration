@@ -12,9 +12,6 @@ logger:
   logs:
     custom_components.integration_EffortlessHome: debug
 
-shell_command:
-  move_motion_files: bash removeoldmotionfiles.sh
-
 # Load frontend themes from the themes folder
 frontend:
   themes: !include_dir_merge_named themes
