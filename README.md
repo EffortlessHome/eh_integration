@@ -91,6 +91,10 @@ EffortlessHome.co’s primary competitive advantage is our focus on delivering f
 
 By focusing on simplifying automation and integration while keeping it affordable, we provide a unique experience in the smart home industry.
 
+License
+
+This repository is licensed under the Apache 2.0 License. See the LICENSE file for more details.
+
 ## Need Help?
 <EH Fiverr Info/Link Here>
 <EH Website Link Here>
