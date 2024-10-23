@@ -457,7 +457,7 @@ class SomeoneHomeSensor(BinarySensorEntity):
         try:
             renter_occupied_state = self.hass.data[DOMAIN]["IsRenterOccupied"]
         except:
-            _LOGGER.error("Failed to determine renter occupied state")
+            _LOGGER.debug("Failed to determine renter occupied state")
 
         if (
             home > 0
