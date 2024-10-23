@@ -50,6 +50,7 @@ class MotionSensorGrouper:
             if (entity.original_device_class in ("motion", "occupancy", "presence"))
             and entity.area_id != "yard"
             and entity.entity_id != "binary_sensor.security_motion_sensors_group"
+            and entity.entity_id != "binary_sensor.security_motion_group_sensor"
             and entity.entity_id != "group.security_motion_sensors_group"
         ]
 

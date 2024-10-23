@@ -124,11 +124,11 @@ async def creatependingalarm(open_sensors: dict | None = None) -> None:
 
     PendingAlarmComponent.set_pendingalarm(alarm)
 
-    hass.states.async_set("effortlesshome.alarm_id", "pending")
-    hass.states.async_set("effortlesshome.alarmcreatemessage", "pending")
-    hass.states.async_set("effortlesshome.alarmownerid", "pending")
-    hass.states.async_set("effortlesshome.alarmstatus", "PENDING")
-    hass.states.async_set("effortlesshome.alarmlasteventtype", "alarm.status.pending")
+    hass.data[DOMAIN]["alarm_id"] = "pending"
+    hass.data[DOMAIN]["alarmcreatemessage"] = "pending"
+    hass.data[DOMAIN]["alarmownerid"] = "pending"
+    hass.data[DOMAIN]["alarmstatus"] = "PENDING"
+    hass.data[DOMAIN]["alarmlasteventtype"] = "alarm.status.pending"
 
 
 async def createalarm(calldata) -> None:
@@ -187,13 +187,11 @@ async def createalarm(calldata) -> None:
         alarmownerid = json_dict["OwnerID"]
         alarmstatus = json_dict["Status"]
 
-        hass.states.async_set("effortlesshome.alarm_id", alarmid)
-        hass.states.async_set("effortlesshome.alarmcreatemessage", alarmcreatemessage)
-        hass.states.async_set("effortlesshome.alarmownerid", alarmownerid)
-        hass.states.async_set("effortlesshome.alarmstatus", alarmstatus)
-        hass.states.async_set(
-            "effortlesshome.alarmlasteventtype", "alarm.status.created"
-        )
+        hass.data[DOMAIN]["alarm_id"] = alarmid
+        hass.data[DOMAIN]["alarmcreatemessage"] = alarmcreatemessage
+        hass.data[DOMAIN]["alarmownerid"] = alarmownerid
+        hass.data[DOMAIN]["alarmstatus"] = alarmstatus
+        hass.data[DOMAIN]["alarmlasteventtype"] = "alarm.status.created"
 
         PendingAlarmComponent.set_pendingalarm(None)
 
@@ -320,22 +318,24 @@ async def cancelalarm():
 
     hass.data[DOMAIN]["MedicalAlertTriggered"] = "Off"
 
-    alarmstate = hass.states.get("effortlesshome.alarm_id")
+    alarmstate = hass.data[DOMAIN]["alarm_id"]
 
-    if alarmstate is not None:
-        alarmstatus = hass.states.get("effortlesshome.alarmstatus").state
+    if alarmstate is not None and alarmstate != "":
+        alarmstatus = hass.data[DOMAIN]["alarmstatus"]
 
         if alarmstatus == "PENDING":
             PendingAlarmComponent.set_pendingalarm(None)
-            hass.states.async_set("effortlesshome.alarm_id", "")
-            hass.states.async_set("effortlesshome.alarmcreatemessage", "")
-            hass.states.async_set("effortlesshome.alarmownerid", "")
-            hass.states.async_set("effortlesshome.alarmstatus", "")
-            hass.states.async_set("effortlesshome.alarmlasteventtype", "")
+
+            hass.data[DOMAIN]["alarm_id"] = ""
+            hass.data[DOMAIN]["alarmcreatemessage"] = ""
+            hass.data[DOMAIN]["alarmownerid"] = ""
+            hass.data[DOMAIN]["alarmstatus"] = ""
+            hass.data[DOMAIN]["alarmlasteventtype"] = ""
+
             return None
 
         if alarmstatus == "ACTIVE":
-            alarmid = hass.states.get("effortlesshome.alarm_id").state
+            alarmid = hass.data[DOMAIN]["alarm_id"]
             _LOGGER.debug("alarm id =" + alarmid)
 
             systemid = hass.data[const.DOMAIN]["systemid"]
@@ -363,10 +363,11 @@ async def cancelalarm():
                         json_dict = json.loads(content)
                         alarmstatus = json_dict["status"]
 
-                        hass.states.async_set("effortlesshome.alarm_id", None)
-                        hass.states.async_set("effortlesshome.alarmcreatemessage", None)
-                        hass.states.async_set("effortlesshome.alarmownerid", None)
-                        hass.states.async_set("effortlesshome.alarmstatus", alarmstatus)
+                        hass.data[DOMAIN]["alarm_id"] = ""
+                        hass.data[DOMAIN]["alarmcreatemessage"] = ""
+                        hass.data[DOMAIN]["alarmownerid"] = ""
+                        hass.data[DOMAIN]["alarmstatus"] = ""
+                        hass.data[DOMAIN]["alarmlasteventtype"] = alarmstatus
 
                     return content
         return None
@@ -379,10 +380,10 @@ async def getalarmstatus():
     """Call the API to create a medical alarm."""
     _LOGGER.debug("in get alarm status")
 
-    alarmstate = hass.states.get("effortlesshome.alarm_id")
+    alarmstate = hass.data[DOMAIN]["alarm_id"]
 
-    if alarmstate is not None:
-        alarmid = hass.states.get("effortlesshome.alarm_id").state
+    if alarmstate is not None and alarmstate != "":
+        alarmid = hass.data[DOMAIN]["alarm_id"]
 
         if alarmid == "pending":
             return None

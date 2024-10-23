@@ -101,6 +101,9 @@ async def async_setup(hass, config) -> bool:  # noqa: ANN001
         "binary_sensor", const.DOMAIN, {}, config
     )
 
+    _LOGGER.info("Setting up effortlesshome sensors integration")
+    await hass.helpers.discovery.async_load_platform("sensor", const.DOMAIN, {}, config)
+
     _LOGGER.info("Setting up effortlesshome light integration")
 
     await hass.helpers.discovery.async_load_platform("light", const.DOMAIN, {}, config)
@@ -792,7 +795,7 @@ async def createevent_internal(sensor_device_name, sensor_device_class):  # noqa
     """Create event internal."""
     hass = HASSComponent.get_hass()
 
-    alarmstate = hass.states.get("effortlesshome.alarm_id")  # type: ignore  # noqa: PGH003
+    alarmstate = hass.data[DOMAIN]["alarm_id"]
 
     jsonpayload = (
         '{ "sensor_device_class":"'
@@ -802,11 +805,11 @@ async def createevent_internal(sensor_device_name, sensor_device_class):  # noqa
         + '" }'
     )
 
-    if alarmstate is not None:
-        alarmstatus = hass.states.get("effortlesshome.alarmstatus").state  # type: ignore  # noqa: PGH003
+    if alarmstate is not None and alarmstate != "":
+        alarmstatus = hass.data[DOMAIN]["alarmstatus"]
 
         if alarmstatus == "ACTIVE":
-            alarmid = hass.states.get("effortlesshome.alarm_id").state  # type: ignore  # noqa: PGH003
+            alarmid = hass.data[DOMAIN]["alarm_id"]  # type: ignore  # noqa: PGH003
             _LOGGER.debug("alarm id =" + alarmid)  # noqa: G003
 
             """Call the API to create event."""
@@ -843,14 +846,14 @@ async def cancelalarm(calldata):  # noqa: ANN001, ANN201, ARG001
     """Cancel alarm."""
     hass = HASSComponent.get_hass()
 
-    """Call the API to create a medical alarm."""
-    alarmstate = hass.states.get("effortlesshome.alarm_id")  # type: ignore  # noqa: PGH003
+    """Call the API to cancel alarm."""
+    alarmstate = hass.data[DOMAIN]["alarm_id"]
 
-    if alarmstate is not None:
-        alarmstatus = hass.states.get("effortlesshome.alarmstatus").state  # type: ignore  # noqa: PGH003
+    if alarmstate is not None and alarmstate != "":
+        alarmstatus = hass.data[DOMAIN]["alarmstatus"]
 
         if alarmstatus == "ACTIVE":
-            alarmid = hass.states.get("effortlesshome.alarm_id").state  # type: ignore  # noqa: PGH003
+            alarmid = hass.data[DOMAIN]["alarm_id"]  # type: ignore  # noqa: PGH003
 
             systemid = hass.data[const.DOMAIN]["systemid"]  # type: ignore  # noqa: PGH003
             eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]  # type: ignore  # noqa: PGH003
@@ -883,10 +886,10 @@ async def getalarmstatus(calldata):  # noqa: ANN001, ANN201, ARG001
 
     """Call the API to create a medical alarm."""
 
-    alarmstate = hass.states.get("effortlesshome.alarm_id")  # type: ignore  # noqa: PGH003
+    alarmstate = hass.data[DOMAIN]["alarm_id"]
 
-    if alarmstate is not None:
-        alarmid = alarmstate.state
+    if alarmstate is not None and alarmstate != "":
+        alarmid = hass.data[DOMAIN]["alarm_id"]
 
         systemid = hass.data[const.DOMAIN]["systemid"]  # type: ignore  # noqa: PGH003
         eh_security_token = hass.data[const.DOMAIN]["eh_security_token"]  # type: ignore  # noqa: PGH003

@@ -42,13 +42,13 @@ class SecurityAlarmWebhook:
 
             _LOGGER.debug("webhookjson:" + str(responsejson))
 
-            alarmstate = hass.states.get("effortlesshome.alarm_id")
+            alarmstate = hass.data[DOMAIN]["alarm_id"]
 
-            if alarmstate is not None:
-                alarmstatus = hass.states.get("effortlesshome.alarmstatus").state  # type: ignore
+            if alarmstate is not None and alarmstate != "":
+                alarmstatus = hass.data[DOMAIN]["alarmstatus"]
 
                 if alarmstatus == "ACTIVE":
-                    latestalarmid = hass.states.get("effortlesshome.alarm_id").state  # type: ignore
+                    latestalarmid = hass.data[DOMAIN]["alarm_id"]
 
                     for event in responsejson:
                         alarm_id = event["meta"]["alarm_id"]
