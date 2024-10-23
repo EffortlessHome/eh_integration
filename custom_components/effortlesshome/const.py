@@ -21,7 +21,7 @@ from homeassistant.const import (
 )
 from homeassistant.helpers import config_validation as cv
 
-VERSION = "1.10.3"
+VERSION = "1.3.9"
 NAME = "effortlesshome"
 MANUFACTURER = "@effortlesshome"
 

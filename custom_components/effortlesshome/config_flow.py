@@ -14,6 +14,7 @@ from .const import (
     DOMAIN,
     EH_INITIALIZE_API,
     PLATFORMS,
+    VERSION,
 )
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
@@ -22,7 +23,7 @@ _LOGGER: logging.Logger = logging.getLogger(__package__)
 class effortlesshomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for effortlesshome."""
 
-    VERSION = "1.0.0"
+    VERSION = VERSION
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     def __init__(self) -> None:

@@ -1,4 +1,4 @@
-export const VERSION = '1.10.4';
+export const VERSION = '1.3.9';
 
 export const platform = 'effortlesshome';
 export const editConfigService = 'edit_config';

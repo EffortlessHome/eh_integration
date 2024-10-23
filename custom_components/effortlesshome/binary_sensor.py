@@ -447,15 +447,22 @@ class SomeoneHomeSensor(BinarySensorEntity):
         entity_id = "group.security_motion_sensors_group"
         motion_sensor_state = self.hass.states.get(entity_id)
 
+        motion_sensor_state_val = "Unknown"
+
         if motion_sensor_state != None:
-            self._state = motion_sensor_state.state  # type: ignore  # noqa: PGH003
-        else:
-            self._state = "Unknown"
+            motion_sensor_state_val = motion_sensor_state.state  # type: ignore  # noqa: PGH003
+
+        renter_occupied_state = "Off"
+
+        try:
+            renter_occupied_state = self.hass.data[DOMAIN]["IsRenterOccupied"]
+        except:
+            _LOGGER.error("Failed to determine renter occupied state")
 
         if (
             home > 0
-            or motion_sensor_state.state == "On"  # type: ignore  # noqa: PGH003
-            or self.hass.data[DOMAIN]["IsRenterOccupied"] == "On"
+            or motion_sensor_state_val == "On"  # type: ignore  # noqa: PGH003
+            or renter_occupied_state == "On"
         ):
             self._state = "On"
         else:
