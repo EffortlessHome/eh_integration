@@ -6,6 +6,7 @@ homeassistant:
   debug: true
   packages: !include_dir_merge_named packages/
 
+
 # https://www.home-assistant.io/integrations/logger/
 logger:
   default: debug

@@ -108,17 +108,24 @@ class light(LightEntity):  # noqa: N801
         """Return the brightness of the group."""
         return self._brightness
 
-    async def async_turn_on(self, **kwargs):  # noqa: ANN003, ANN201
-        """Turn on all lights in the group."""
+    async def async_turn_on(self, **kwargs):
+        """Turn on all lights in the group, with optional brightness control."""
         if not self._lights:
-            _LOGGER.debug("No lights found in the group.")
+            _LOGGER.error("No lights found in the group.")
             return
 
+        brightness = kwargs.get("brightness", None)
+
+        # Turn on all lights with the specified brightness (if provided)
         for light_entity_id in self._lights:
-            await self.hass.services.async_call(
-                "light", "turn_on", {"entity_id": light_entity_id, **kwargs}
-            )
+            service_data = {"entity_id": light_entity_id}
+            if brightness:
+                service_data["brightness"] = brightness
+            await self.hass.services.async_call("light", "turn_on", service_data)
+
         self._is_on = True
+        if brightness:
+            self._brightness = brightness
 
     async def async_turn_off(self, **kwargs) -> None:  # noqa: ANN003
         """Turn off all lights in the group."""
@@ -132,19 +139,30 @@ class light(LightEntity):  # noqa: N801
             )
         self._is_on = False
 
-    async def async_update(self) -> None:
-        """Fetch the state of all lights in the group and determine if any are on."""
+    async def async_update(self):
+        """Fetch the state of all lights in the group and determine if any are on, and get brightness."""
         if not self._lights:
             return
+
+        total_brightness = 0
+        brightness_count = 0
 
         # Update the state of the group based on individual light states
         for light_entity_id in self._lights:
             await async_update_entity(self.hass, light_entity_id)
             state = self.hass.states.get(light_entity_id)
+
             if state and state.state == "on":
                 self._is_on = True
-                self._brightness = state.attributes.get("brightness")
-                return
+                light_brightness = state.attributes.get("brightness")
+                if light_brightness:
+                    total_brightness += light_brightness
+                    brightness_count += 1
+            else:
+                self._is_on = False
 
-        self._is_on = False
-        self._brightness = None
+        # Calculate average brightness for the group if there are lights with brightness
+        if brightness_count > 0:
+            self._brightness = total_brightness // brightness_count
+        else:
+            self._brightness = None

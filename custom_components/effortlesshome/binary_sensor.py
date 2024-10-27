@@ -38,6 +38,8 @@ def setup_platform(
     add_entities([DoorGroup()])
     add_entities([WindowGroup()])
     add_entities([SecurityMotionGroup()])
+    add_entities([MedicationTrackingSensor()])
+    add_entities([MotionNotifcationSensor()])
 
 
 class SecurityMotionGroup(BinarySensorEntity):
@@ -506,3 +508,81 @@ class RenterOccupiedSensor(BinarySensorEntity):
             self._state = self.hass.data[DOMAIN]["IsRenterOccupied"]
         except:
             self._state = "Unknown"
+
+
+class MedicationTrackingSensor(BinarySensorEntity):
+    """Representation of a sensor."""
+
+    def __init__(self) -> None:
+        """Initialize the sensor."""
+        self._state = "off"
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Medication Tracking Sensor"
+
+    @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
+    def state(self):  # noqa: ANN201
+        """Return the state of the sensor."""
+        return self._state
+
+    @property
+    def icon(self) -> str:
+        """Return the icon of the sensor."""
+        return "mdi:pill"
+
+    def update(self) -> None:
+        """
+        Fetch new state data for the sensor.
+
+        This is the only method that should fetch new data for Home Assistant.
+        """
+        try:
+            self._state = self.hass.data[DOMAIN]["MedicationTracking"]
+        except:
+            self._state = "off"
+
+
+class MotionNotifcationSensor(BinarySensorEntity):
+    """Representation of a sensor."""
+
+    def __init__(self) -> None:
+        """Initialize the sensor."""
+        self._state = "on"
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Motion Notification Sensor"
+
+    @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
+    def state(self):  # noqa: ANN201
+        """Return the state of the sensor."""
+        return self._state
+
+    @property
+    def icon(self) -> str:
+        """Return the icon of the sensor."""
+        return "mdi:email-check"
+
+    def update(self) -> None:
+        """
+        Fetch new state data for the sensor.
+
+        This is the only method that should fetch new data for Home Assistant.
+        """
+        try:
+            self._state = self.hass.data[DOMAIN]["MotionNotifications"]
+        except:
+            self._state = "on"

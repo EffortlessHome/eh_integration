@@ -127,6 +127,38 @@ async def async_setup(hass, config) -> bool:  # noqa: ANN001
         DOMAIN, "createcleanmotionfilesservice", cleanmotionfiles
     )
 
+    @callback
+    async def turnOnMedicationTrackingservice(call: ServiceCall) -> None:
+        await turnOnMedicationTracking(call)
+
+    hass.services.async_register(
+        DOMAIN, "turnOnMedicationTrackingservice", turnOnMedicationTracking
+    )
+
+    @callback
+    async def turnOffMedicationTrackingservice(call: ServiceCall) -> None:
+        await turnOffMedicationTracking(call)
+
+    hass.services.async_register(
+        DOMAIN, "turnOffMedicationTrackingservice", turnOffMedicationTracking
+    )
+
+    @callback
+    async def turnOffMotionNotificationsservice(call: ServiceCall) -> None:
+        await turnOffMotionNotifications(call)
+
+    hass.services.async_register(
+        DOMAIN, "turnOffMotionNotificationsservice", turnOffMotionNotifications
+    )
+
+    @callback
+    async def turnOnMotionNotificationsservice(call: ServiceCall) -> None:
+        await turnOnMotionNotifications(call)
+
+    hass.services.async_register(
+        DOMAIN, "turnOnMotionNotificationsservice", turnOnMotionNotifications
+    )
+
     async def after_home_assistant_started(event):
         """Call this function after Home Assistant has started."""
         # Call your function here
@@ -930,7 +962,7 @@ async def cleanmotionfiles(calldata):
     except:
         _LOGGER.error("Invalid Args To Clean Motion Service. Using Default 30 days")
 
-    command = "find /media/snapshots/* -mtime +" + age + " -exec rm {} \\;"
+    command = "find /media/snapshots/* -mtime +" + str(age) + " -exec rm {} \\;"
 
     # Use subprocess to execute the shell command
     process = subprocess.run(
@@ -941,6 +973,30 @@ async def cleanmotionfiles(calldata):
         _LOGGER.info("Successfully deleted old snapshots.")
     else:
         _LOGGER.error(f"Error deleting snapshots: {process.stderr.decode()}")
+
+
+async def turnOffMotionNotifications(calldata):
+    """turnOffMotionNotifications"""
+    hass = HASSComponent.get_hass()
+    hass.data[DOMAIN]["MotionNotifications"] = "off"
+
+
+async def turnOnMotionNotifications(calldata):
+    """turnOnMotionNotifications"""
+    hass = HASSComponent.get_hass()
+    hass.data[DOMAIN]["MotionNotifications"] = "on"
+
+
+async def turnOffMedicationTracking(calldata):
+    """turnOffMedicationTracking"""
+    hass = HASSComponent.get_hass()
+    hass.data[DOMAIN]["MedicationTracking"] = "off"
+
+
+async def turnOnMedicationTracking(calldata):
+    """turnOnMedicationTracking"""
+    hass = HASSComponent.get_hass()
+    hass.data[DOMAIN]["MedicationTracking"] = "on"
 
 
 async def getPlanStatus(calldata):  # noqa: ANN001, ANN201, ARG001, N802
