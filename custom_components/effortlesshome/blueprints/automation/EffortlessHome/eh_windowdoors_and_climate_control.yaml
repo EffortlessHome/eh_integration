@@ -6,7 +6,7 @@ blueprint:
     opening and closing the window/door(s).
   domain: automation
   author: EffortlessHome
-  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_windowdoors_and_climate_control.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/automation/EffortlessHome/eh_windowdoors_and_climate_control.yaml
   input:
     window_sensor:
       name: Window/Door Sensor

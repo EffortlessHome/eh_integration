@@ -4,7 +4,7 @@ blueprint:
   description: 'A script that sets a temporary code for smart door locks'
   domain: script
   author: EffortlessHome
-  source_url: https://raw.githubusercontent.com/EffortlessHome/blueprints/refs/heads/main/script/effortlesshome/EH_SetDoorLockCode.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/script/EffortlessHome/EH_SetDoorLockCode.yaml
   input:
     lock:
       description: (Required) Which door lock to program

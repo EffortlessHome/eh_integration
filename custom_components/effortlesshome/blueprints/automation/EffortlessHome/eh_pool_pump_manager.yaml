@@ -6,7 +6,7 @@ blueprint:
     Extends the work of https://gist.github.com/swingerman/3dda78527397f8b27e00dbd60ab2dc7b
   domain: automation
   author: EffortlessHome
-  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_pool_pump_manager.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/automation/EffortlessHome/eh_pool_pump_manager.yaml
 
   input:
     pool_pump:

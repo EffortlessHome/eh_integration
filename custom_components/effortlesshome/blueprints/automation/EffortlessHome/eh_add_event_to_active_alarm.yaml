@@ -4,7 +4,7 @@ blueprint:
     alarm
   domain: automation
   author: EffortlessHome
-  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_add_event_to_active_alarm.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/automation/EffortlessHome/eh_add_event_to_active_alarm.yaml
   input:
     triggeringsensor:
       name: Binary Sensor

@@ -3,7 +3,7 @@ blueprint:
   description: At morning, disarm alarm and turn off sleeping sensor
   domain: automation
   author: EffortlessHome
-  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_goodmorning.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/automation/EffortlessHome/eh_goodmorning.yaml
   input:
     goodmorning_time:
       name: What time of the day will goodmorning run

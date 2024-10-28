@@ -3,7 +3,7 @@ blueprint:
   description: Get advanced notification and history for medication reminder
   domain: automation
   author: EffortlessHome
-  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_medication_reminder_ios.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/automation/EffortlessHome/eh_medication_reminder_ios.yaml
   input:
     reminder_time:
       name: Reminder time

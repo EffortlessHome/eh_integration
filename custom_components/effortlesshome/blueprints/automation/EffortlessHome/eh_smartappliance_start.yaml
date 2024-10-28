@@ -3,7 +3,7 @@ blueprint:
   description: Set the start run action(s) to take to convert a dumb appliance to smart
   domain: automation
   author: EffortlessHome
-  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_smartappliance_end.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/automation/EffortlessHome/eh_smartappliance_end.yaml
   input:
     powermonitoringsensor:
       name: Power Monitoring Sensor

@@ -3,7 +3,7 @@ blueprint:
   description: This automation detects low batteries proactively and lets you take action before the batteries die and functionality breaks.
   domain: automation
   author: EffortlessHome
-  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_low_battery_notifications_and_actions.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/automation/EffortlessHome/eh_low_battery_notifications_and_actions.yaml
   input:
 
     time:

@@ -3,7 +3,7 @@ blueprint:
   description: Daily cleanup of 30+ day old motion and person detection image files
   domain: automation
   author: EffortlessHome
-  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_motionfile_cleanup.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/automation/EffortlessHome/eh_motionfile_cleanup.yaml
   input:
     execution_time:
       name: Time of day

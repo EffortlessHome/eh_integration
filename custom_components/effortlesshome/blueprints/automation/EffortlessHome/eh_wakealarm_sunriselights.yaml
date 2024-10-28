@@ -3,7 +3,7 @@ blueprint:
   description: "Turn on lamps gradually brighter based on wake time."
   domain: automation
   author: EffortlessHome
-  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_wakealarm_sunsriselights.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/automation/EffortlessHome/eh_wakealarm_sunsriselights.yaml
 
   input:
     min_mireds:

@@ -2,7 +2,7 @@ blueprint:
   name: Confirmable Notification with Timeout
   description: Sends a notification to multiple devices with Confirm and Cancel actions. Automatically triggers an action if timeout expires.
   domain: script
-  source_url: https://github.com/home-assistant/core/blob/master/effortlesshome/components/script/blueprints/EH_confirmable_notification_with_timeout.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/script/EffortlessHome/EH_confirmable_notification_with_timeout.yaml
   author: EffortlessHome
   input:
     notify_device:

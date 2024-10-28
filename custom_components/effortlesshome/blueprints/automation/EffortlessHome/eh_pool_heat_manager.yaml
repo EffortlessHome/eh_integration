@@ -3,7 +3,7 @@ blueprint:
   description: Control your pool heater based on the current temperature of the pool and disable completely if needed based on season.
   domain: automation
   author: EffortlessHome
-  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_pool_heat_manager.yaml
+  source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/automation/EffortlessHome/eh_pool_heat_manager.yaml
 
   input:
     pool_heater:
