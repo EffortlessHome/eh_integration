@@ -1,0 +1,38 @@
+blueprint:
+  name: Motion and Person Image File Cleanup
+  description: Daily cleanup of 30+ day old motion and person detection image files
+  domain: automation
+  author: EffortlessHome
+  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_motionfile_cleanup.yaml
+  input:
+    execution_time:
+      name: Time of day
+      description: The time of day when this will run each day.
+      selector:
+        time: {}
+    age:
+      name: Motion File Age
+      description: How Old Should The Motion Files Be To Be Removed
+      default: 30
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: days
+          step: 1.0
+          mode: slider
+    additional_actions:
+      name: Additional Actions
+      description: Add additional actions to execute (Optional)
+      default: []
+      selector:
+        action: {}
+trigger:
+- at: !input execution_time
+  platform: time
+action:
+- service: effortlesshome.createcleanmotionfilesservice
+  data:
+    age: !input age
+- choose: []
+  default: !input additional_actions

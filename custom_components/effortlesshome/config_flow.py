@@ -1,5 +1,58 @@
 """Config flow for the effortlesshome component."""
 
+from __future__ import annotations
+from typing import Any
+
+import voluptuous as vol
+from homeassistant import config_entries
+from homeassistant.core import callback
+from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.helpers.area_registry import AreaRegistry, AreaEntry
+from homeassistant.helpers import (
+    area_registry as ar,
+    device_registry as dr,
+    entity_registry as er,
+)
+
+import homeassistant.helpers.selector as selector
+from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.sensor.const import SensorDeviceClass
+from homeassistant.data_entry_flow import FlowResult
+
+from .calculations import (
+    CALCULATE_LAST,
+    CALCULATE_MAX,
+    CALCULATE_MEAN,
+    CALCULATE_MEDIAN,
+    CALCULATE_MIN,
+)
+
+from .ha_helpers import get_all_entities
+
+from .auto_area import AutoAreasError, AutoArea
+
+from .const import (
+    CONFIG_AREA,
+    CONFIG_HUMIDITY_CALCULATION,
+    CONFIG_ILLUMINANCE_CALCULATION,
+    CONFIG_IS_SLEEPING_AREA,
+    CONFIG_EXCLUDED_LIGHT_ENTITIES,
+    CONFIG_AUTO_LIGHTS_MAX_ILLUMINANCE,
+    CONFIG_TEMPERATURE_CALCULATION,
+    DOMAIN,
+    CONF_SYSTEMID,
+    CONF_USERNAME,
+    EH_INITIALIZE_API,
+    PLATFORMS,
+    VERSION,
+)
+
+from .calculations import (
+    DEFAULT_CALCULATION_ILLUMINANCE,
+    DEFAULT_CALCULATION_TEMPERATURE,
+    DEFAULT_CALCULATION_HUMIDITY,
+)
 import logging
 import secrets
 
@@ -7,15 +60,6 @@ import aiohttp
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
-
-from .const import (
-    CONF_SYSTEMID,
-    CONF_USERNAME,
-    DOMAIN,
-    EH_INITIALIZE_API,
-    PLATFORMS,
-    VERSION,
-)
 
 _LOGGER: logging.Logger = logging.getLogger(__package__)
 
@@ -47,7 +91,6 @@ class effortlesshomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
             if valid:
-                # TODO: add entries for the retrieved data
                 self.async_create_entry(
                     title=user_input[CONF_USERNAME], data=user_input[CONF_USERNAME]
                 )
@@ -59,8 +102,8 @@ class effortlesshomeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title=user_input[CONF_USERNAME], data=user_input
                 )
-
-            self._errors["base"] = "Invalid Email. Please check and try again."
+            else:
+                self._errors["base"] = "Invalid Email. Please check and try again."
 
             return await self._show_config_form(user_input)
 

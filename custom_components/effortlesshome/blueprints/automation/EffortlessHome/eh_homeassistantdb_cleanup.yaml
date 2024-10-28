@@ -1,0 +1,44 @@
+blueprint:
+  name: Home Assistant DB Cleanup
+  description: Actions to take and timing for the Home Assistant Database Cleanup.
+    This includes steps such as sensor history to retain. Maintenance is required
+    to keep optimized performance.
+  domain: automation
+  author: EffortlessHome
+  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_homeassistantdb_cleanup.yaml
+  input:
+    retention_days:
+      name: Days Of History To Retain
+      description: The number of days of event and sensor history to retain. Default
+        is 30 days.
+      default: 30
+      selector:
+        number:
+          min: 1.0
+          max: 30.0
+          unit_of_measurement: days
+          mode: box
+          step: 1.0
+    execution_time:
+      name: What time of the day will the Maintenance Job run
+      description: The time of day when this will run each day. Strongly recommend
+        during a low usage time.
+      selector:
+        time: {}
+    additional_actions:
+      name: Additional Actions
+      description: Add additional actions to execute (Optional)
+      default: []
+      selector:
+        action: {}
+trigger:
+- at: !input execution_time
+  platform: time
+condition: []
+action:
+- service: recorder.purge
+  data:
+    keep_days: !input retention_days
+    repack: true
+- choose: []
+  default: !input additional_actions

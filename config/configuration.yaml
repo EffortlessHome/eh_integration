@@ -9,9 +9,9 @@ homeassistant:
 
 # https://www.home-assistant.io/integrations/logger/
 logger:
-  default: debug
+  default: info
   logs:
-    custom_components.integration_EffortlessHome: debug
+    custom_components.integration_EffortlessHome: info
 
 # Load frontend themes from the themes folder
 frontend:

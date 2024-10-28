@@ -13,6 +13,11 @@ import aiohttp
 import bcrypt
 import subprocess
 
+import os
+import shutil
+import homeassistant.util.dt as dt_util
+from homeassistant.config import get_default_config_dir
+
 from homeassistant.components.alarm_control_panel import (
     DOMAIN as PLATFORM,  # type: ignore  # noqa: PGH003
 )
@@ -68,9 +73,30 @@ from .sensors import (
 )
 from .store import async_get_registry
 from .websockets import async_register_websockets
+from .area_manager import AreaManager
 
-if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers import issue_registry
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+from homeassistant.helpers import entity_registry
+
+from .auto_area import (
+    AutoArea,
+)
+
+from .const import DOMAIN, ISSUE_TYPE_YAML_DETECTED
+
+PLATFORMS: list[Platform] = [
+    Platform.SWITCH,
+    Platform.BINARY_SENSOR,
+    Platform.SENSOR,
+    Platform.COVER,
+    Platform.LIGHT,
+]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -96,6 +122,46 @@ async def async_setup(hass, config) -> bool:  # noqa: ANN001
     """Track states and offer events for sensors."""
     HASSComponent.set_hass(hass)
 
+    # deploy latest: theme, cards, blueprints, etc.
+    integration_dir = os.path.dirname(os.path.abspath(__file__))
+    source_themes_dir = os.path.join(integration_dir, "themes")
+    source_www_dir = os.path.join(integration_dir, "www")
+    source_blueprints_dir = os.path.join(integration_dir, "blueprints")
+
+    target_themes_dir = "/config/themes"
+    target_www_dir = "/config/www"
+    target_blueprints_dir = "/config/blueprints"
+
+    # Ensure destination directories exist
+    os.makedirs(target_themes_dir, exist_ok=True)
+    os.makedirs(target_www_dir, exist_ok=True)
+    os.makedirs(target_blueprints_dir, exist_ok=True)
+
+    _LOGGER.info("effortlesshome source themes dir" + source_themes_dir)
+    _LOGGER.info("effortlesshome target themes dir" + target_themes_dir)
+    _LOGGER.info("effortlesshome target www dir" + target_www_dir)
+    _LOGGER.info("effortlesshome target blueprints dir" + target_blueprints_dir)
+
+    # Copy entire themes directory including subfolders and files
+    if os.path.exists(source_themes_dir):
+        shutil.copytree(source_themes_dir, target_themes_dir, dirs_exist_ok=True)
+
+    # Copy entire www directory including subfolders and files
+    if os.path.exists(source_www_dir):
+        shutil.copytree(source_www_dir, target_www_dir, dirs_exist_ok=True)
+
+    # Copy entire blueprints directory including subfolders and files
+    if os.path.exists(source_blueprints_dir):
+        shutil.copytree(
+            source_blueprints_dir, target_blueprints_dir, dirs_exist_ok=True
+        )
+
+    # Reload themes in Home Assistant to apply any new themes
+    await hass.services.async_call("frontend", "reload_themes")
+
+    area_manager = AreaManager(hass, ["Living Room", "Family Room", "Yard", "Basement", "Kitchen", "Bedroom", "Garage", "Attic", "Unknown"])
+    await area_manager.ensure_areas_exist()
+
     _LOGGER.info("Setting up effortlesshome binary sensors integration")
     await hass.helpers.discovery.async_load_platform(
         "binary_sensor", const.DOMAIN, {}, config
@@ -105,8 +171,13 @@ async def async_setup(hass, config) -> bool:  # noqa: ANN001
     await hass.helpers.discovery.async_load_platform("sensor", const.DOMAIN, {}, config)
 
     _LOGGER.info("Setting up effortlesshome light integration")
-
     await hass.helpers.discovery.async_load_platform("light", const.DOMAIN, {}, config)
+
+    _LOGGER.info("Setting up effortlesshome switch integration")
+    await hass.helpers.discovery.async_load_platform("switch", const.DOMAIN, {}, config)
+
+    _LOGGER.info("Setting up effortlesshome cover integration")
+    await hass.helpers.discovery.async_load_platform("cover", const.DOMAIN, {}, config)
 
     # Load the group platform
     await hass.helpers.discovery.async_load_platform("group", const.DOMAIN, {}, config)
@@ -125,38 +196,6 @@ async def async_setup(hass, config) -> bool:  # noqa: ANN001
 
     hass.services.async_register(
         DOMAIN, "createcleanmotionfilesservice", cleanmotionfiles
-    )
-
-    @callback
-    async def turnOnMedicationTrackingservice(call: ServiceCall) -> None:
-        await turnOnMedicationTracking(call)
-
-    hass.services.async_register(
-        DOMAIN, "turnOnMedicationTrackingservice", turnOnMedicationTracking
-    )
-
-    @callback
-    async def turnOffMedicationTrackingservice(call: ServiceCall) -> None:
-        await turnOffMedicationTracking(call)
-
-    hass.services.async_register(
-        DOMAIN, "turnOffMedicationTrackingservice", turnOffMedicationTracking
-    )
-
-    @callback
-    async def turnOffMotionNotificationsservice(call: ServiceCall) -> None:
-        await turnOffMotionNotifications(call)
-
-    hass.services.async_register(
-        DOMAIN, "turnOffMotionNotificationsservice", turnOffMotionNotifications
-    )
-
-    @callback
-    async def turnOnMotionNotificationsservice(call: ServiceCall) -> None:
-        await turnOnMotionNotifications(call)
-
-    hass.services.async_register(
-        DOMAIN, "turnOnMotionNotificationsservice", turnOnMotionNotifications
     )
 
     async def after_home_assistant_started(event):
@@ -221,16 +260,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool | N
     register_services(hass)
     register_security_services(hass)
 
-    hass.data[DOMAIN]["MedicalAlertTriggered"] = "Off"
-    hass.data[DOMAIN]["GoodnightRanForDay"] = "Off"
-    hass.data[DOMAIN]["IsRenterOccupied"] = "Off"
-
     # Initialize the Motion Sensor Grouper
     grouper = MotionSensorGrouper(hass)
 
     # Create groups for motion sensors
     await grouper.create_sensor_groups()
     await grouper.create_security_sensor_group()
+
+    return True
+
+
+async def async_init(hass: HomeAssistant, entry: ConfigEntry, auto_area: AutoArea):
+    """Initialize component."""
+    await asyncio.sleep(5)  # wait for all area devices to be initialized
+
+    # TODO: Jermie: Revisit this as it may be needed to late load the entities.
+    #    await auto_area.async_initialize()
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
 
@@ -249,9 +297,20 @@ async def async_unload_entry(hass, entry) -> bool:  # noqa: ANN001
     coordinator = hass.data[const.DOMAIN]["coordinator"]
     await coordinator.async_unload()
 
+    # unsubscribe from changes:
+    hass.data[DOMAIN][entry.entry_id].cleanup()
+
+    # unload platforms:
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        hass.data[DOMAIN].pop(entry.entry_id)
+        _LOGGER.warning("Unloaded successfully %s", entry.entry_id)
+    else:
+        _LOGGER.error("Couldn't unload config entry %s", entry.entry_id)
+
     await SecurityAlarmWebhook.async_remove(hass)
 
-    return True
+    return unloaded
 
 
 async def async_remove_entry(hass, entry) -> None:  # noqa: ANN001, ARG001
@@ -706,14 +765,6 @@ def register_security_services(hass) -> None:  # noqa: ANN001
         await changemedicalalertstate(call)
 
     @callback
-    async def changegoodnightranfordaystateservice(call: ServiceCall) -> None:
-        await changegoodnightranfordaystate(call)
-
-    @callback
-    async def changerenteroccupiedstateservice(call: ServiceCall) -> None:
-        await changerenteroccupiedstate(call)
-
-    @callback
     async def confirmpendingalarmservice(call: ServiceCall) -> None:
         await createalarm(call)
 
@@ -730,12 +781,7 @@ def register_security_services(hass) -> None:  # noqa: ANN001
     hass.services.async_register(
         DOMAIN, "changemedicalalertstateservice", changemedicalalertstate
     )
-    hass.services.async_register(
-        DOMAIN, "changegoodnightranfordaystateservice", changegoodnightranfordaystate
-    )
-    hass.services.async_register(
-        DOMAIN, "changerenteroccupiedstateservice", changerenteroccupiedstate
-    )
+
     hass.services.async_register(DOMAIN, "confirmpendingalarmservice", createalarm)
 
 
@@ -787,20 +833,6 @@ async def loaddevicegroups(calldata) -> None:  # noqa: ANN001, ARG001
     """Load device groups."""
     hass = HASSComponent.get_hass()
     await async_setup_devicegroup(hass)
-
-
-async def changegoodnightranfordaystate(calldata) -> None:  # noqa: ANN001
-    """Change goodnight ran for day state."""
-    hass = HASSComponent.get_hass()
-    hass.data[DOMAIN]["GoodnightRanForDay"] = calldata.data["newstate"]  # type: ignore  # noqa: PGH003
-
-
-async def changerenteroccupiedstate(calldata) -> None:  # noqa: ANN001
-    """Change renter occupied state."""
-    _LOGGER.debug("change renter occupied state calldata =" + str(calldata.data))  # noqa: G003
-
-    hass = HASSComponent.get_hass()
-    hass.data[DOMAIN]["IsRenterOccupied"] = calldata.data["newstate"]  # type: ignore  # noqa: PGH003
 
 
 async def createevent(calldata) -> None:  # noqa: ANN001
@@ -973,30 +1005,6 @@ async def cleanmotionfiles(calldata):
         _LOGGER.info("Successfully deleted old snapshots.")
     else:
         _LOGGER.error(f"Error deleting snapshots: {process.stderr.decode()}")
-
-
-async def turnOffMotionNotifications(calldata):
-    """turnOffMotionNotifications"""
-    hass = HASSComponent.get_hass()
-    hass.data[DOMAIN]["MotionNotifications"] = "off"
-
-
-async def turnOnMotionNotifications(calldata):
-    """turnOnMotionNotifications"""
-    hass = HASSComponent.get_hass()
-    hass.data[DOMAIN]["MotionNotifications"] = "on"
-
-
-async def turnOffMedicationTracking(calldata):
-    """turnOffMedicationTracking"""
-    hass = HASSComponent.get_hass()
-    hass.data[DOMAIN]["MedicationTracking"] = "off"
-
-
-async def turnOnMedicationTracking(calldata):
-    """turnOnMedicationTracking"""
-    hass = HASSComponent.get_hass()
-    hass.data[DOMAIN]["MedicationTracking"] = "on"
 
 
 async def getPlanStatus(calldata):  # noqa: ANN001, ANN201, ARG001, N802

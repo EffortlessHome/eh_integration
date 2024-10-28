@@ -1,0 +1,116 @@
+blueprint:
+  name: Camera Package Detection with Google AI
+  description: This automation blueprint converts a non-package detecting camera to a package detecting one using Google AI. It uses the
+    camera motion trigger to analyze the snapshot for a package in the image and allows taking actions based on the results.
+    Dependency on google_generative_ai_conversation must be installed to use this blueprint.
+  domain: automation
+  author: EffortlessHome
+  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_camera_packagedetection_googleai.yaml
+  input:
+    sensor:
+      name: Camera Motion Binary Sensor
+      description: The sensor wich triggers the package detection
+      selector:
+        entity:
+          domain:
+          - binary_sensor
+          multiple: false
+    camera:
+      name: Camera
+      description: The camera which creates the snapshot
+      selector:
+        entity:
+          domain:
+          - camera
+          multiple: false
+
+    notification_title:
+      name: Notification title
+      description: 'Default: "package detected!"'
+      default: package detected!
+
+    notification_message:
+      name: Notification message
+      description: 'Default: "{{ sensor_name }} detected a package! Snapshot from {{
+        camera_name }} at {{ time }}."'
+      default: '{{ sensor_name }} detected a package! Snapshot from {{ camera_name
+        }} at {{ time }}.'
+
+    data_clickaction_url:
+      name: URL to Navigate (Optional)
+      description: The URL to navigate to when clicking on the notification. (default
+        = /lovelace)
+      default: /lovelace
+
+    additional_actions:
+      name: Additional Actions
+      description: Add additional actions to execute (Optional)
+        else.
+      default: []
+      selector:
+        action: {}
+
+trigger:
+- platform: state
+  entity_id: !input sensor
+  to: 'on'
+variables:
+  sensor: !input sensor
+  sensor_name: '{{ states[sensor].name }}'
+  camera: !input camera
+  camera_name: '{{ states[camera].name }}'
+
+  time: '{{ now().strftime("%H:%M") }}'
+  date: '{{ now().strftime("%Y-%m-%d") }}'
+  notification_title: !input notification_title
+  notification_message: !input notification_message
+
+  snapshot_create_file_path: /media/snapshots/{{ camera_name }}/{{
+    now().strftime("%Y%m%d-%H%M%S") }}.jpg
+  snapshot_access_file_path: '{{ snapshot_create_file_path | replace(''/media'',''/media/local'')
+    }}'
+
+  clickActionURL: !input data_clickaction_url
+
+  additional_actions: !input additional_actions
+
+action:
+
+- service: camera.snapshot
+  entity_id: !input camera
+  data:
+    filename: '{{ snapshot_create_file_path }}'
+
+- data:
+    prompt: >-
+      Is there at least one package shown in this image?
+    image_filename: '{{ snapshot_create_file_path }}'
+  response_variable: content
+  action: google_generative_ai_conversation.generate_content
+
+- condition: template
+  value_template: "{{ 'Yes' in content.text}}"
+
+- condition: state
+  entity_id: binary_sensor.motion_notification_sensor
+  state: 'on'
+
+- service: notify.notify
+  data:
+    title: !input notification_title
+    message: '{{ notification_message}} {{content.text}}'
+    data:
+      image: '{{ snapshot_access_file_path }}'
+      clickAction: !input data_clickaction_url
+      ttl: 0
+      priority: high
+      attachment:
+        url: '{{ snapshot_access_file_path }}'
+        content_type: JPEG
+      url: !input data_clickaction_url
+
+- choose: []
+  default: !input additional_actions
+mode: parallel
+
+

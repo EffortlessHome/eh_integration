@@ -20,7 +20,7 @@ class MotionSensorGrouper:
 
         areas = self.hass.helpers.area_registry.async_get()
 
-        # Get entity registry to find light entities
+        # Get entity registry to find entities
         entities = entity_registry.async_get(self.hass)
 
         # Loop over each area and find associated motion sensors
@@ -29,7 +29,7 @@ class MotionSensorGrouper:
             motion_sensors = [
                 entity.entity_id
                 for entity in entities.entities.values()
-                if (entity.original_device_class in ("motion", "occupancy", "presence"))
+                if (entity.original_device_class in ("motion", "occupancy", "presence") or entity.entity_id.startswith("media_player."))
                 and entity.area_id == area_id
             ]
 
@@ -52,9 +52,28 @@ class MotionSensorGrouper:
             and entity.entity_id != "binary_sensor.security_motion_sensors_group"
             and entity.entity_id != "binary_sensor.security_motion_group_sensor"
             and entity.entity_id != "group.security_motion_sensors_group"
+            and entity.labels is not None
+            and not self.checkforlabel(entity.labels, "NotForSecurityMonitoring")
         ]
 
         await self._create_group("group.security_motion_sensors_group", motion_sensors)
+
+    def checkforlabel(self, labels, value_to_check) -> bool:
+        """Check whether a label is in the list of labels."""
+    
+        # Handle potential null or empty values and convert to a clean list
+        parsed_labels = [label for label in labels if label] if labels else []
+
+        _LOGGER.debug(parsed_labels)
+
+        # Check if the value is in parsed_labels
+        if value_to_check in parsed_labels:
+            _LOGGER.debug(f"'{value_to_check}' is in parsed_labels.")
+            return True
+        else:
+            _LOGGER.debug(f"'{value_to_check}' is not in parsed_labels.")
+            return False
+        
 
     async def _create_group(self, group_name, entity_ids) -> None:  # noqa: ANN001
         """Create a group of entities in Home Assistant."""

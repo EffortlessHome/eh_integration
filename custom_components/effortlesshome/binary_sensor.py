@@ -9,10 +9,18 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 
 from .const import DOMAIN
 
-if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
-    from homeassistant.helpers.entity_platform import AddEntitiesCallback
-    from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
+
+from homeassistant.helpers import entity_registry
+
+from .presence import (
+    PresenceBinarySensor,
+)
+
+from .auto_area import AutoArea
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,8 +46,20 @@ def setup_platform(
     add_entities([DoorGroup()])
     add_entities([WindowGroup()])
     add_entities([SecurityMotionGroup()])
-    add_entities([MedicationTrackingSensor()])
+    add_entities([MedicationTrackingSensor("medicationtracking1")])
+    add_entities([MedicationTrackingSensor("medicationtracking2")])
+    add_entities([MedicationTrackingSensor("medicationtracking3")])
     add_entities([MotionNotifcationSensor()])
+    add_entities([SmartApplianceSensor("smartappliance1")])
+    add_entities([SmartApplianceSensor("smartappliance2")])
+    add_entities([SmartApplianceSensor("smartappliance3")])
+
+    #areas = hass.helpers.area_registry.async_get()
+
+    # Loop over each area and find associated motion sensors
+    # for area_id, area in areas.areas.items():
+    #    auto_area = AutoArea(hass=hass, areaid=area_id)
+    #    add_entities([PresenceBinarySensor(hass, auto_area)])
 
 
 class SecurityMotionGroup(BinarySensorEntity):
@@ -52,7 +72,7 @@ class SecurityMotionGroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = "Clear"
+        self._state = "off"
 
     @property
     def name(self) -> str:
@@ -86,7 +106,7 @@ class SecurityMotionGroup(BinarySensorEntity):
         if sensor_state != None:
             self._state = sensor_state.state  # type: ignore  # noqa: PGH003
         else:
-            sensor_state = "Unknown"
+            sensor_state = "unknown"
 
 
 class WindowGroup(BinarySensorEntity):
@@ -99,7 +119,7 @@ class WindowGroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = "Closed"
+        self._state = "off"
 
     @property
     def name(self) -> str:
@@ -133,7 +153,7 @@ class WindowGroup(BinarySensorEntity):
         if sensor_state != None:
             self._state = sensor_state.state  # type: ignore  # noqa: PGH003
         else:
-            sensor_state = "Unknown"
+            sensor_state = "unknown"
 
 
 class DoorGroup(BinarySensorEntity):
@@ -146,7 +166,7 @@ class DoorGroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = "Closed"
+        self._state = "off"
 
     @property
     def name(self) -> str:
@@ -180,7 +200,7 @@ class DoorGroup(BinarySensorEntity):
         if sensor_state != None:
             self._state = sensor_state.state  # type: ignore  # noqa: PGH003
         else:
-            sensor_state = "Unknown"
+            sensor_state = "unknown"
 
 
 class CarbonMonoxideGroup(BinarySensorEntity):
@@ -193,7 +213,7 @@ class CarbonMonoxideGroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = "Clear"
+        self._state = "off"
 
     @property
     def name(self) -> str:
@@ -227,7 +247,7 @@ class CarbonMonoxideGroup(BinarySensorEntity):
         if sensor_state != None:
             self._state = sensor_state.state  # type: ignore  # noqa: PGH003
         else:
-            sensor_state = "Unknown"
+            sensor_state = "unknown"
 
 
 class MoistureGroup(BinarySensorEntity):
@@ -240,7 +260,7 @@ class MoistureGroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = "Dry"
+        self._state = "off"
 
     @property
     def name(self) -> str:
@@ -274,7 +294,7 @@ class MoistureGroup(BinarySensorEntity):
         if sensor_state != None:
             self._state = sensor_state.state  # type: ignore  # noqa: PGH003
         else:
-            sensor_state = "Unknown"
+            sensor_state = "unknown"
 
 
 class SmokeGroup(BinarySensorEntity):
@@ -287,7 +307,7 @@ class SmokeGroup(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = "Clear"
+        self._state = "off"
 
     @property
     def name(self) -> str:
@@ -321,7 +341,7 @@ class SmokeGroup(BinarySensorEntity):
         if sensor_state != None:
             self._state = sensor_state.state  # type: ignore  # noqa: PGH003
         else:
-            sensor_state = "Unknown"
+            sensor_state = "unknown"
 
 
 class BinaryMedAlertSensor(BinarySensorEntity):
@@ -334,7 +354,7 @@ class BinaryMedAlertSensor(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = "Safe"
+        self._state = "off"
 
     @property
     def name(self) -> str:
@@ -373,7 +393,7 @@ class SleepingSensor(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = "Off"
+        self._state = "off"
 
     @property
     def name(self) -> str:
@@ -401,10 +421,18 @@ class SleepingSensor(BinarySensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        try:
-            self._state = self.hass.data[DOMAIN]["GoodnightRanForDay"]
-        except:
-            self._state = "Unknown"
+        entity_id = "switch.switch_sleep_mode"
+
+        # Get the state of the entity
+        state = self.hass.states.get(entity_id)
+
+        if state is not None:
+            # Get the state value (e.g., "on" or "off")
+            switch_state = state.state
+            _LOGGER.info(f"The state of {entity_id} is: {switch_state}")
+            self._state = switch_state
+        else:
+            self._state = "off"
 
 
 class SomeoneHomeSensor(BinarySensorEntity):
@@ -412,7 +440,7 @@ class SomeoneHomeSensor(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = "Off"
+        self._state = "off"
 
     @property
     def name(self) -> str:
@@ -454,21 +482,25 @@ class SomeoneHomeSensor(BinarySensorEntity):
         if motion_sensor_state != None:
             motion_sensor_state_val = motion_sensor_state.state  # type: ignore  # noqa: PGH003
 
-        renter_occupied_state = "Off"
+        entity_id = "switch.switch_renter_occupied"
 
-        try:
-            renter_occupied_state = self.hass.data[DOMAIN]["IsRenterOccupied"]
-        except:
-            _LOGGER.debug("Failed to determine renter occupied state")
+        # Get the state of the entity
+        state = self.hass.states.get(entity_id)
+
+        renter_occupied_state = "off"
+
+        if state is not None:
+            # Get the state value (e.g., "on" or "off")
+            renter_occupied_state = state.state
 
         if (
             home > 0
-            or motion_sensor_state_val == "On"  # type: ignore  # noqa: PGH003
-            or renter_occupied_state == "On"
+            or motion_sensor_state_val.lower() == "on"  # type: ignore  # noqa: PGH003
+            or renter_occupied_state.lower() == "on"
         ):
-            self._state = "On"
+            self._state = "on"
         else:
-            self._state = "Off"
+            self._state = "off"
 
 
 class RenterOccupiedSensor(BinarySensorEntity):
@@ -476,7 +508,7 @@ class RenterOccupiedSensor(BinarySensorEntity):
 
     def __init__(self) -> None:
         """Initialize the sensor."""
-        self._state = "Off"
+        self._state = "off"
 
     @property
     def name(self) -> str:
@@ -504,23 +536,32 @@ class RenterOccupiedSensor(BinarySensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        try:
-            self._state = self.hass.data[DOMAIN]["IsRenterOccupied"]
-        except:
-            self._state = "Unknown"
+        entity_id = "switch.switch_renter_occupied"
+
+        # Get the state of the entity
+        state = self.hass.states.get(entity_id)
+
+        if state is not None:
+            # Get the state value (e.g., "on" or "off")
+            switch_state = state.state
+            _LOGGER.info(f"The state of {entity_id} is: {switch_state}")
+            self._state = switch_state
+        else:
+            self._state = "off"
 
 
 class MedicationTrackingSensor(BinarySensorEntity):
     """Representation of a sensor."""
 
-    def __init__(self) -> None:
+    def __init__(self, entityname) -> None:
         """Initialize the sensor."""
         self._state = "off"
+        self._name = entityname
 
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        return "Medication Tracking Sensor"
+        return self._name
 
     @property
     def unique_id(self) -> str:
@@ -543,9 +584,18 @@ class MedicationTrackingSensor(BinarySensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        try:
-            self._state = self.hass.data[DOMAIN]["MedicationTracking"]
-        except:
+        entity_id = f"switch.{self._name}"
+
+        # Get the state of the entity
+        state = self.hass.states.get(entity_id)
+
+        if state is not None:
+            # Get the state value (e.g., "on" or "off")
+            switch_state = state.state
+            _LOGGER.info(f"The state of {entity_id} is: {switch_state}")
+            self._state = switch_state
+        else:
+            _LOGGER.info(f"The state of {entity_id} cannnot be determined")
             self._state = "off"
 
 
@@ -582,7 +632,69 @@ class MotionNotifcationSensor(BinarySensorEntity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        try:
-            self._state = self.hass.data[DOMAIN]["MotionNotifications"]
-        except:
-            self._state = "on"
+        entity_id = "switch.switch_motion_notifications"
+
+        # Get the state of the entity
+        state = self.hass.states.get(entity_id)
+
+        if state is not None:
+            # Get the state value (e.g., "on" or "off")
+            switch_state = state.state
+            _LOGGER.info(f"The state of {entity_id} is: {switch_state}")
+            self._state = switch_state
+        else:
+            self._state = "off"
+
+class SmartApplianceSensor(BinarySensorEntity):
+    """Representation of a sensor."""
+
+    def __init__(self, entityname) -> None:
+        """Initialize the sensor."""
+        self._state = "off"
+        self._name = entityname
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return self._name
+    
+    @property
+    def device_class(self) -> str:
+        """Return the device_class of the sensor."""
+        return "running"
+
+    @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
+    def state(self):  # noqa: ANN201
+        """Return the state of the sensor."""
+        return self._state
+
+    @property
+    def icon(self) -> str:
+        """Return the icon of the sensor."""
+        return "mdi:washing-machine"
+
+    def update(self) -> None:
+        """
+        Fetch new state data for the sensor.
+
+        This is the only method that should fetch new data for Home Assistant.
+        """
+        entity_id = f"switch.{self._name}"
+
+        # Get the state of the entity
+        state = self.hass.states.get(entity_id)
+
+        if state is not None:
+            # Get the state value (e.g., "on" or "off")
+            switch_state = state.state
+            _LOGGER.info(f"The state of {entity_id} is: {switch_state}")
+            self._state = switch_state
+        else:
+            _LOGGER.info(f"The state of {entity_id} cannnot be determined")
+            self._state = "off"
+

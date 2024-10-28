@@ -1,0 +1,98 @@
+blueprint:
+  name: Turn On Light from Door Sensor with Timeout
+  description: Automatically actitvate a light with a door sensor attached to the
+    door, activating a smart switch or light.  The light will turn off at the end
+    of a timer.  Logic is also implemented to turn off the light in the event it's
+    manually turned on while the door is open or after the automation has already run.
+  domain: automation
+  author: EffortlessHome
+  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_light_from_doorsensor_with_timeout.yaml
+  input:
+    door_sensor:
+      name: Door Sensor
+      selector:
+        entity:
+          domain:
+          - binary_sensor
+          multiple: false
+    light_switch:
+      name: Light
+      selector:
+        target:
+          entity:
+          - domain:
+            - light
+            - switch
+    light_timeout:
+      name: Light Timeout
+      description: How long to let the light stay on after opening the door.
+      default: 300
+      selector:
+        number:
+          min: 0.0
+          max: 86400.0
+          unit_of_measurement: seconds
+          mode: slider
+          step: 60.0
+    sunset_offset:
+      name: Offset to turn on lights
+      description: Define offset to sunset
+      default: 60
+      selector:
+        number:
+          min: 0.0
+          max: 240.0
+          unit_of_measurement: minutes
+          step: 1.0
+          mode: slider
+    sunrise_offset:
+      name: Offset to turn off lights
+      description: Define offset to sunrise
+      default: 45
+      selector:
+        number:
+          min: 0.0
+          max: 240.0
+          unit_of_measurement: minutes
+          step: 1.0
+          mode: slider
+    additional_actions:
+      name: Additional Actions
+      description: Add additional actions to execute (Optional)
+      default: []
+      selector:
+        action: {}
+mode: single
+max_exceeded: silent
+trigger:
+- platform: state
+  entity_id: !input door_sensor
+  from: 'off'
+  to: 'on'
+  id: door-open
+condition:
+- condition: or
+  conditions:
+  - condition: sun
+    after: sunset
+    after_offset: !input sunset_offset
+  - condition: sun
+    before: sunrise
+    before_offset: !input sunrise_offset
+action:
+- if:
+  - condition: trigger
+    id: door-open
+  then:
+  - service: homeassistant.turn_on
+    data: {}
+    target: !input light_switch
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: !input light_timeout
+      milliseconds: 0
+- service: homeassistant.turn_off
+  target: !input light_switch
+- choose: []
+  default: !input additional_actions

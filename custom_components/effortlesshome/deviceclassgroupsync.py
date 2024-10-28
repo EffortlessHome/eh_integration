@@ -80,4 +80,14 @@ async def async_setup_devicegroup(hass) -> bool:  # noqa: ANN001
     vibration_sync = DeviceClassGroupSync(hass, "vibration_sensors_group", "vibration")
     await vibration_sync.find_and_sync_devices()
 
+    # Initialize the group sync for 'humidity' device_class
+    humidity_sync = DeviceClassGroupSync(hass, "humidity_sensors_group", "humidity")
+    await humidity_sync.find_and_sync_devices()
+
+    # Initialize the group sync for 'temperature' device_class
+    temperature_sync = DeviceClassGroupSync(
+        hass, "temperature_sensors_group", "temperature"
+    )
+    await temperature_sync.find_and_sync_devices()
+
     return True

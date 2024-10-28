@@ -1,0 +1,79 @@
+blueprint:
+  name: Humidity Alarm Triggered
+  description: Set the actions to take when a humidity alarm is triggered
+  domain: automation
+  author: EffortlessHome
+  source_url: https://github.com/EffortlessHome/blueprints/raw/refs/heads/main/automation/EffortlessHome/eh_humidity_alarm.yaml
+  input:
+    humidsensor:
+      name: Humidity Sensor
+      description: The triggering humidity sensor(s)
+      selector:
+        entity:
+          filter:
+          - domain:
+            - sensor
+          multiple: true
+    low_trigger_humidity:
+      description: Humidity % to use to trigger a low temp alert
+      name: Low humidity trigger
+      default: 20
+      selector:
+        number:
+          min: 0.0
+          max: 99.0
+          unit_of_measurement: percentage
+          step: 1.0
+          mode: slider
+    high_trigger_humidity:
+      description: Humidity % to use to trigger a high temp alert
+      name: High humidity trigger
+      default: 80
+      selector:
+        number:
+          min: 0.0
+          max: 99.0
+          unit_of_measurement: percentage
+          step: 1.0
+          mode: slider
+    notification_message:
+      name: Notification message
+      description: 'Humidity Sensor Activated Message'
+      default: 'Humidity Sensor Activated.'
+
+    data_clickaction_url:
+      name: URL to Navigate (Optional)
+      description: The URL to navigate to when clicking on the notification. (default
+        = /lovelace)
+      default: /lovelace
+
+    additional_actions:
+      name: Additional Actions
+      description: Add additional actions to execute (Optional)
+      default: []
+      selector:
+        action: {}
+
+trigger:
+- platform: numeric_state
+  entity_id: !input humidsensor
+  above: !input high_trigger_humidity
+- platform: numeric_state
+  entity_id: !input humidsensor
+  below: !input low_trigger_humidity
+variables:
+  clickActionURL: !input data_clickaction_url
+
+action:
+- service: notify.notify
+  data:
+    title: Humidity Sensor Activated
+    message: !input notification_message
+    data:
+      clickAction: !input data_clickaction_url
+      ttl: 0
+      priority: high
+      url: !input data_clickaction_url
+
+- choose: []
+  default: !input additional_actions
