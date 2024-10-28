@@ -39,7 +39,7 @@ from homeassistant.components.cover import DOMAIN as COVER_DOMAIN
 from homeassistant.const import STATE_HOME, STATE_ON, STATE_PLAYING
 
 
-VERSION = "1.3.11"
+VERSION = "1.4.1"
 NAME = "effortlesshome"
 MANUFACTURER = "@effortlesshome"
 
