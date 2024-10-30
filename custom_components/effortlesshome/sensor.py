@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -16,7 +17,10 @@ from .const import DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers import entity_registry
+from homeassistant.util import dt as dt_util
+
+from homeassistant.helpers.sun import get_astral_event_date
+from homeassistant.const import SUN_EVENT_SUNRISE, SUN_EVENT_SUNSET
 
 from .humidity import HumiditySensor
 from .illuminance import IlluminanceSensor
@@ -44,18 +48,17 @@ def setup_platform(
     add_entities([AverageHumiditySensor()])
     add_entities([AverageTemperatureSensor()])
 
-    #areas = hass.helpers.area_registry.async_get()
+    virtual_sensor = VirtualIlluminanceSensor(hass)
+    
+    # Register the sensor as a Home Assistant entity
+    hass.states.async_set("sensor.virtual_illuminance", 1000, {"unit_of_measurement": "lx", "friendly_name": "Virtual Illuminance Sensor"})
+    hass.helpers.event.async_track_time_interval(
+        virtual_sensor.update_illuminance, timedelta(minutes=5)
+    )
 
-    # Loop over each area and find associated motion sensors
-    #for area_id, area in areas.areas.items():
-    #    auto_area = AutoArea(hass=hass, areaid=area_id)
-    #    add_entities(
-    #        [
-                # IlluminanceSensor(hass, auto_area),
-                # TemperatureSensor(hass, auto_area),
-                # HumiditySensor(hass, auto_area),
-    #        ]
-    #    )
+    virtual_sensor.update_illuminance()
+
+    add_entities([virtual_sensor])
 
 
 class AlarmIDSensor(SensorEntity):
@@ -324,7 +327,7 @@ class AverageHumiditySensor(SensorEntity):
         # Calculate the average if we have numeric values
         if numeric_values:
             average_value = sum(numeric_values) / len(numeric_values)
-            self._state = average_value
+            self._state = round(average_value, 1)
             _LOGGER.debug(f"Average numeric state for group {group_entity_id}: {average_value}")
         else:
             _LOGGER.debug(f"No numeric values found for entities in group {group_entity_id}.")
@@ -394,8 +397,108 @@ class AverageTemperatureSensor(SensorEntity):
         # Calculate the average if we have numeric values
         if numeric_values:
             average_value = sum(numeric_values) / len(numeric_values)
-            self._state = average_value
+            self._state = round(average_value, 1)
             _LOGGER.debug(f"Average numeric state for group {group_entity_id}: {average_value}")
         else:
             _LOGGER.debug(f"No numeric values found for entities in group {group_entity_id}.")
             self._state = -1
+
+
+class VirtualIlluminanceSensor(SensorEntity):
+    def __init__(self, hass):
+        """Initialize the virtual illuminance sensor."""
+        self._state = 10
+        self.hass = hass
+
+    @property
+    def name(self):
+        return "Virtual Illuminance Sensor"
+
+    @property
+    def unique_id(self) -> str | None:
+        """Return the unique_id of the sensor."""
+        return "sensor.virtual_illuminance"
+
+    @property
+    def device_class(self) -> str:
+        """Return the device_class of the sensor."""
+        return SensorDeviceClass.ILLUMINANCE
+
+    @property
+    def icon(self) -> str:
+        """Return the icon of the sensor."""
+        return "mdi:brightness-7"
+
+    def update(self) -> None:
+        """
+        Fetch new state data for the sensor.
+
+        This is the only method that should fetch new data for Home Assistant.
+        """
+
+        _LOGGER.debug("In virtual illuminance sensor update.")
+
+        sun_state = self.hass.states.get("sun.sun")
+        if not sun_state:
+            self._state = 1000
+            _LOGGER.debug(f"In virtual illuminance sensor update. sun_state is None.")
+            return  # Exit if sun entity isn't available
+
+        if sun_state.state == "below_horizon":
+            self._state = 100
+            return
+
+        sunrise_time = get_astral_event_date(self.hass, SUN_EVENT_SUNRISE)
+
+        if not sunrise_time:
+            self._state = 1000  
+            _LOGGER.debug("In virtual illuminance sensor update. sunrise time is None.")
+            return  # Exit if sunrise time isn't available
+
+        sunset_time = get_astral_event_date(self.hass, SUN_EVENT_SUNSET)
+
+        if not sunset_time:
+            self._state = 1000  
+            _LOGGER.debug("In virtual illuminance sensor update. sunset time is None.")
+            return  # Exit if sunrise time isn't available
+
+        # Convert sunrise/set times to datetime and calculate the time difference
+
+        time_since_sunrise = dt_util.now() - sunrise_time
+        secondssincesunrise = time_since_sunrise.total_seconds()
+
+        time_until_sunset = sunset_time - dt_util.now()
+        secondsuntilsunset = time_until_sunset.total_seconds()
+
+        _LOGGER.debug(f"In virtual illuminance sensor seconds since sunrise: {secondssincesunrise}.")
+        _LOGGER.debug(f"In virtual illuminance sensor seconds until sunset: {secondsuntilsunset}.")
+
+        # are we closer to sunrise or sunset?
+        if (secondssincesunrise < secondsuntilsunset):
+            if (secondssincesunrise <= 1800):
+                self._state = 200
+            elif (secondssincesunrise <= 3600):
+                self._state = 400
+            elif (secondssincesunrise <= 5400):
+                self._state = 600
+            elif (secondssincesunrise <= 7200):
+                self._state = 800    
+            else:
+                self._state = 1000
+        else:
+            if (secondsuntilsunset <= 1800):
+                self._state = 200
+            elif (secondsuntilsunset <= 3600):
+                self._state = 400
+            elif (secondsuntilsunset <= 5400):
+                self._state = 600
+            elif (secondsuntilsunset <= 7200):
+                self._state = 800    
+            else:
+                self._state = 1000
+        
+    def update_illuminance(self, now=None):
+        """Calculate and update illuminance based on the time since sunset and time until sunrise."""
+        self.update()  
+
+        self.hass.states.async_set(self.entity_id, self._state, {"unit_of_measurement": "lx", "friendly_name": self.name})

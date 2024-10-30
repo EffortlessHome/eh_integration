@@ -134,7 +134,7 @@ action:
       - conditions: '{{ wait.trigger and wait.trigger.event.data.action == ''taken''
           }}'
         sequence:
-        - service: input_boolean.turn_on
+        - service: switch.turn_on
           target:
             entity_id: !input medtracking_switch
         - service: logbook.log
@@ -162,7 +162,7 @@ action:
           data:
             name: !input notification_title
             message: !input logbook_message_skip
-            entity_id: !input input_boolean
+            entity_id: !input medtracking_switch
       default:
       - device_id: !input notify_device
         domain: mobile_app
