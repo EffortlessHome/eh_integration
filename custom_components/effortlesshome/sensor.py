@@ -22,11 +22,6 @@ from homeassistant.util import dt as dt_util
 from homeassistant.helpers.sun import get_astral_event_date
 from homeassistant.const import SUN_EVENT_SUNRISE, SUN_EVENT_SUNSET
 
-from .humidity import HumiditySensor
-from .illuminance import IlluminanceSensor
-from .temperature import TemperatureSensor
-from .auto_area import AutoArea
-
 _LOGGER = logging.getLogger(__name__)
 
 def setup_platform(
@@ -47,19 +42,7 @@ def setup_platform(
     add_entities([AlarmLastEventSensor()])
     add_entities([AverageHumiditySensor()])
     add_entities([AverageTemperatureSensor()])
-
-    virtual_sensor = VirtualIlluminanceSensor(hass)
-    
-    # Register the sensor as a Home Assistant entity
-    hass.states.async_set("sensor.virtual_illuminance", 1000, {"unit_of_measurement": "lx", "friendly_name": "Virtual Illuminance Sensor"})
-    hass.helpers.event.async_track_time_interval(
-        virtual_sensor.update_illuminance, timedelta(minutes=5)
-    )
-
-    virtual_sensor.update_illuminance()
-
-    add_entities([virtual_sensor])
-
+    add_entities([VirtualIlluminanceSensor()])
 
 class AlarmIDSensor(SensorEntity):
     """Representation of a sensor."""
@@ -405,19 +388,26 @@ class AverageTemperatureSensor(SensorEntity):
 
 
 class VirtualIlluminanceSensor(SensorEntity):
-    def __init__(self, hass):
-        """Initialize the virtual illuminance sensor."""
-        self._state = 10
-        self.hass = hass
+    """Representation of a sensor."""
+
+    def __init__(self) -> None:
+        """Initialize the sensor."""
+        self._state = 1000
 
     @property
-    def name(self):
-        return "Virtual Illuminance Sensor"
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
 
     @property
-    def unique_id(self) -> str | None:
-        """Return the unique_id of the sensor."""
-        return "sensor.virtual_illuminance"
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "VirtualIlluminanceSensor"
+    
+    @property
+    def icon(self) -> str:
+        """Return the icon of the sensor."""
+        return "mdi:brightness-7"
 
     @property
     def device_class(self) -> str:
@@ -425,9 +415,9 @@ class VirtualIlluminanceSensor(SensorEntity):
         return SensorDeviceClass.ILLUMINANCE
 
     @property
-    def icon(self) -> str:
-        """Return the icon of the sensor."""
-        return "mdi:brightness-7"
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
 
     def update(self) -> None:
         """
@@ -436,7 +426,9 @@ class VirtualIlluminanceSensor(SensorEntity):
         This is the only method that should fetch new data for Home Assistant.
         """
 
-        _LOGGER.debug("In virtual illuminance sensor update.")
+        _LOGGER.debug(f"In virtual illuminance sensor update")
+
+        self._state = 200
 
         sun_state = self.hass.states.get("sun.sun")
         if not sun_state:
@@ -496,9 +488,4 @@ class VirtualIlluminanceSensor(SensorEntity):
                 self._state = 800    
             else:
                 self._state = 1000
-        
-    def update_illuminance(self, now=None):
-        """Calculate and update illuminance based on the time since sunset and time until sunrise."""
-        self.update()  
 
-        self.hass.states.async_set(self.entity_id, self._state, {"unit_of_measurement": "lx", "friendly_name": self.name})
