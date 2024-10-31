@@ -1,10 +1,10 @@
 blueprint:
-  name: Motion-activated Light with illuminance, nightmode and dimmable
+  name: Motion-activated Light with Illuminance
   description:
     Turn on a light when motion is detected and illuminance is below a
     set Lux level. The light will dim before it is turned off to signal that it has
     not detected motion in quite a while. There is also two timers, on for daytime
-    and one for nighttime.
+    and one for nighttime. Use label "SleepArea" on any lights you do not want to turn on while sleeping.
   domain: automation
   author: EffortlessHome
   source_url: https://github.com/EffortlessHome/eh_integration/raw/refs/heads/main/custom_components/effortlesshome/blueprints/automation/EffortlessHome/eh_illuminance_motion_lights.yaml
@@ -16,8 +16,7 @@ blueprint:
         entity:
           domain:
             - binary_sensor
-          device_class:
-            - motion
+            - group
           multiple: false
     lux_entity:
       name: Illuminance Sensor
@@ -74,18 +73,21 @@ blueprint:
           unit_of_measurement: seconds
           step: 1.0
           mode: slider
-
+    additional_actions:
+      name: Additional Actions
+      description: Add additional actions to execute (Optional)
+      default: []
+      selector:
+        action: {}
 mode: restart
 max_exceeded: silent
-variables:
-  local_motion_delay: !input no_motion_wait
-  local_motion_dim_time: !input dim_time
-  sun_entity: sun.sun
+
 trigger:
   platform: state
   entity_id: !input motion_entity
   from: "off"
   to: "on"
+
 condition:
   condition: and
   conditions:
@@ -94,14 +96,41 @@ condition:
       below: !input lux_level
 
 action:
+  - variables:
+      mylight: !input light_target #light.area_lights_bedroom
+      valuequery: '{{ "sleeparea" not in labels(mylight.entity_id)  }}'
+     
+      valuetemplate: '{{ valuequery }}'
+
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: binary_sensor.sleeping_sensor
+        state: "off"
+      - condition: and
+        conditions:
+          - condition: state
+            entity_id: binary_sensor.sleeping_sensor
+            state: "on"
+          - condition: template
+            value_template: >
+              {{ valuetemplate }}
+              
+
   - service: light.turn_on
     target: !input light_target
+
   - wait_for_trigger:
       platform: state
       entity_id: !input motion_entity
       from: "on"
-  - delay: " {{ local_motion_delay - local_motion_dim_time }}"
+
+  - delay: !input no_motion_wait
+
   - service: light.turn_off
     target: !input light_target
     data:
       transition: !input dim_time
+
+  - choose: []
+    default: !input additional_actions

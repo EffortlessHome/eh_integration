@@ -28,5 +28,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/EffortlessHome/eh_integration/issues",
   "requirements": [],
-  "version": "1.4.2"
+  "version": "1.4.3"
 }

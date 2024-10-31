@@ -467,24 +467,24 @@ class VirtualIlluminanceSensor(SensorEntity):
 
         # are we closer to sunrise or sunset?
         if (secondssincesunrise < secondsuntilsunset):
-            if (secondssincesunrise <= 1800):
+            if (secondssincesunrise <= 500):
                 self._state = 200
-            elif (secondssincesunrise <= 3600):
+            elif (secondssincesunrise <= 1000):
                 self._state = 400
-            elif (secondssincesunrise <= 5400):
+            elif (secondssincesunrise <= 1500):
                 self._state = 600
-            elif (secondssincesunrise <= 7200):
+            elif (secondssincesunrise <= 2000):
                 self._state = 800    
             else:
                 self._state = 1000
         else:
-            if (secondsuntilsunset <= 1800):
+            if (secondsuntilsunset <= 500):
                 self._state = 200
-            elif (secondsuntilsunset <= 3600):
+            elif (secondsuntilsunset <= 1000):
                 self._state = 400
-            elif (secondsuntilsunset <= 5400):
+            elif (secondsuntilsunset <= 1500):
                 self._state = 600
-            elif (secondsuntilsunset <= 7200):
+            elif (secondsuntilsunset <= 2000):
                 self._state = 800    
             else:
                 self._state = 1000
