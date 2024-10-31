@@ -24,6 +24,11 @@ blueprint:
           - camera
           multiple: false
 
+    google_ai_prompt:
+      name: Prompt to use with Google AI
+      description: 'Default: "Is there at least one vehicle shown in this image?"'
+      default: "Is there at least one vehicle shown in this image?"
+
     notification_title:
       name: Notification title
       description: 'Default: "Vehicle detected!"'
@@ -79,8 +84,7 @@ action:
     filename: '{{ snapshot_create_file_path }}'
 
 - data:
-    prompt: >-
-      Is there at least one vehicle shown in this image?
+    prompt: !input google_ai_prompt
     image_filename: '{{ snapshot_create_file_path }}'
   response_variable: content
   action: google_generative_ai_conversation.generate_content
