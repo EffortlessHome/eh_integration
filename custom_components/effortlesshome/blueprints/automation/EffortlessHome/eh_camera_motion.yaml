@@ -100,6 +100,9 @@ action:
         url: '{{ snapshot_access_file_path }}'
         content_type: JPEG
       url: !input data_clickaction_url
+      actions:
+        - action: SNOOZEMOTIONNOTIFY
+          title: Snooze Motion Notifications
 
 - choose: []
   default: !input additional_actions

@@ -115,6 +115,9 @@ action:
       attachment:
         url: '{{ snapshot_access_file_path }}'
       url: !input data_clickaction_url
+      actions:
+        - action: SNOOZEMOTIONNOTIFY
+          title: Snooze Motion Notifications
 
 - choose: []
   default: !input additional_actions
