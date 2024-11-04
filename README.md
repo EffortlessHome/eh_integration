@@ -108,5 +108,6 @@ License
 This repository is licensed under the Apache 2.0 License. See the LICENSE file for more details.
 
 ## Need Help?
-<EH Fiverr Info/Link Here>
-<EH Website Link Here>
+support@effortlesshome.co
+https://www.effortlesshome.co
+
