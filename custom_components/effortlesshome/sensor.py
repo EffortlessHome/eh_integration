@@ -568,4 +568,4 @@ class HighTemperatureTomorrowSensor(SensorEntity):
         _LOGGER.debug(f"In high temp tomorrow forecast: { forecast }")
 
         if len(forecast) > 0:
-            self._state = forecast[0]["temperature"]
+            self._state = forecast[1]["temperature"]
