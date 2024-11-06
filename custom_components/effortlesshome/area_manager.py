@@ -1,7 +1,9 @@
 from homeassistant.helpers import area_registry
 
 import logging
+
 _LOGGER = logging.getLogger(__name__)
+
 
 class AreaManager:
     def __init__(self, hass, area_names):

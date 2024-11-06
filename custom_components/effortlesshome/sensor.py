@@ -22,7 +22,12 @@ from homeassistant.util import dt as dt_util
 from homeassistant.helpers.sun import get_astral_event_date
 from homeassistant.const import SUN_EVENT_SUNRISE, SUN_EVENT_SUNSET
 
+from homeassistant.util import dt as dt_util
+import datetime
+from typing import Union
+
 _LOGGER = logging.getLogger(__name__)
+
 
 def setup_platform(
     hass: HomeAssistant,
@@ -43,6 +48,8 @@ def setup_platform(
     add_entities([AverageHumiditySensor()])
     add_entities([AverageTemperatureSensor()])
     add_entities([VirtualIlluminanceSensor()])
+    add_entities([HighTemperatureTomorrowSensor()])
+
 
 class AlarmIDSensor(SensorEntity):
     """Representation of a sensor."""
@@ -287,7 +294,7 @@ class AverageHumiditySensor(SensorEntity):
 
         # Get all entities in the group
         group_entities = group_state.attributes.get("entity_id", [])
-        
+
         # Get all entities in the group
         group_entities = group_state.attributes.get("entity_id", [])
 
@@ -300,10 +307,14 @@ class AverageHumiditySensor(SensorEntity):
                     # Attempt to convert the state to a float
                     numeric_value = float(current_state)
                     numeric_values.append(numeric_value)
-                    _LOGGER.debug(f"Entity {entity_id} has a numeric state of {numeric_value}")
+                    _LOGGER.debug(
+                        f"Entity {entity_id} has a numeric state of {numeric_value}"
+                    )
                 except ValueError:
                     # Non-numeric state, skip
-                    _LOGGER.debug(f"Entity {entity_id} state '{current_state}' is not numeric.")
+                    _LOGGER.debug(
+                        f"Entity {entity_id} state '{current_state}' is not numeric."
+                    )
             else:
                 self.hass.logger.warning(f"Entity {entity_id} has no state available.")
 
@@ -311,10 +322,15 @@ class AverageHumiditySensor(SensorEntity):
         if numeric_values:
             average_value = sum(numeric_values) / len(numeric_values)
             self._state = round(average_value, 1)
-            _LOGGER.debug(f"Average numeric state for group {group_entity_id}: {average_value}")
+            _LOGGER.debug(
+                f"Average numeric state for group {group_entity_id}: {average_value}"
+            )
         else:
-            _LOGGER.debug(f"No numeric values found for entities in group {group_entity_id}.")
+            _LOGGER.debug(
+                f"No numeric values found for entities in group {group_entity_id}."
+            )
             self._state = -1
+
 
 class AverageTemperatureSensor(SensorEntity):
     """Representation of a sensor."""
@@ -370,10 +386,14 @@ class AverageTemperatureSensor(SensorEntity):
                     # Attempt to convert the state to a float
                     numeric_value = float(current_state)
                     numeric_values.append(numeric_value)
-                    _LOGGER.debug(f"Entity {entity_id} has a numeric state of {numeric_value}")
+                    _LOGGER.debug(
+                        f"Entity {entity_id} has a numeric state of {numeric_value}"
+                    )
                 except ValueError:
                     # Non-numeric state, skip
-                    _LOGGER.debug(f"Entity {entity_id} state '{current_state}' is not numeric.")
+                    _LOGGER.debug(
+                        f"Entity {entity_id} state '{current_state}' is not numeric."
+                    )
             else:
                 self.hass.logger.warning(f"Entity {entity_id} has no state available.")
 
@@ -381,9 +401,13 @@ class AverageTemperatureSensor(SensorEntity):
         if numeric_values:
             average_value = sum(numeric_values) / len(numeric_values)
             self._state = round(average_value, 1)
-            _LOGGER.debug(f"Average numeric state for group {group_entity_id}: {average_value}")
+            _LOGGER.debug(
+                f"Average numeric state for group {group_entity_id}: {average_value}"
+            )
         else:
-            _LOGGER.debug(f"No numeric values found for entities in group {group_entity_id}.")
+            _LOGGER.debug(
+                f"No numeric values found for entities in group {group_entity_id}."
+            )
             self._state = -1
 
 
@@ -403,7 +427,7 @@ class VirtualIlluminanceSensor(SensorEntity):
     def name(self) -> str:
         """Return the name of the sensor."""
         return "VirtualIlluminanceSensor"
-    
+
     @property
     def icon(self) -> str:
         """Return the icon of the sensor."""
@@ -443,14 +467,14 @@ class VirtualIlluminanceSensor(SensorEntity):
         sunrise_time = get_astral_event_date(self.hass, SUN_EVENT_SUNRISE)
 
         if not sunrise_time:
-            self._state = 1000  
+            self._state = 1000
             _LOGGER.debug("In virtual illuminance sensor update. sunrise time is None.")
             return  # Exit if sunrise time isn't available
 
         sunset_time = get_astral_event_date(self.hass, SUN_EVENT_SUNSET)
 
         if not sunset_time:
-            self._state = 1000  
+            self._state = 1000
             _LOGGER.debug("In virtual illuminance sensor update. sunset time is None.")
             return  # Exit if sunrise time isn't available
 
@@ -462,30 +486,86 @@ class VirtualIlluminanceSensor(SensorEntity):
         time_until_sunset = sunset_time - dt_util.now()
         secondsuntilsunset = time_until_sunset.total_seconds()
 
-        _LOGGER.debug(f"In virtual illuminance sensor seconds since sunrise: {secondssincesunrise}.")
-        _LOGGER.debug(f"In virtual illuminance sensor seconds until sunset: {secondsuntilsunset}.")
+        _LOGGER.debug(
+            f"In virtual illuminance sensor seconds since sunrise: {secondssincesunrise}."
+        )
+        _LOGGER.debug(
+            f"In virtual illuminance sensor seconds until sunset: {secondsuntilsunset}."
+        )
 
         # are we closer to sunrise or sunset?
-        if (secondssincesunrise < secondsuntilsunset):
-            if (secondssincesunrise <= 500):
+        if secondssincesunrise < secondsuntilsunset:
+            if secondssincesunrise <= 500:
                 self._state = 200
-            elif (secondssincesunrise <= 1000):
+            elif secondssincesunrise <= 1000:
                 self._state = 400
-            elif (secondssincesunrise <= 1500):
+            elif secondssincesunrise <= 1500:
                 self._state = 600
-            elif (secondssincesunrise <= 2000):
-                self._state = 800    
+            elif secondssincesunrise <= 2000:
+                self._state = 800
             else:
                 self._state = 1000
         else:
-            if (secondsuntilsunset <= 500):
+            if secondsuntilsunset <= 500:
                 self._state = 200
-            elif (secondsuntilsunset <= 1000):
+            elif secondsuntilsunset <= 1000:
                 self._state = 400
-            elif (secondsuntilsunset <= 1500):
+            elif secondsuntilsunset <= 1500:
                 self._state = 600
-            elif (secondsuntilsunset <= 2000):
-                self._state = 800    
+            elif secondsuntilsunset <= 2000:
+                self._state = 800
             else:
                 self._state = 1000
 
+
+class HighTemperatureTomorrowSensor(SensorEntity):
+    """Representation of a sensor."""
+
+    def __init__(self) -> None:
+        """Initialize the sensor."""
+        self._state = ""
+
+    @property
+    def unique_id(self) -> str:
+        """Return the unique ID of the sensor."""
+        return self.name
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "High Temperature Tomorrow Sensor"
+
+    @property
+    def icon(self) -> str:
+        """Return the icon of the sensor."""
+        return "mdi:thermometer"
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
+
+    def update(self) -> None:
+        """
+        Fetch new state data for the sensor.
+
+        This is the only method that should fetch new data for Home Assistant.
+        """
+        _LOGGER.debug(f"In high temp tomorrow forecast")
+
+        forecasts = self.hass.services.call(
+            "weather",
+            "get_forecasts",
+            {"type": "daily", "entity_id": "weather.forecast_home"},
+            blocking=True,
+            return_response=True,
+        )
+
+        _LOGGER.debug(f"In high temp tomorrow forecasts: {forecasts}")
+
+        forecast = forecasts.get("weather.forecast_home").get("forecast")
+
+        _LOGGER.debug(f"In high temp tomorrow forecast: { forecast }")
+
+        if len(forecast) > 0:
+            self._state = forecast[0]["temperature"]
