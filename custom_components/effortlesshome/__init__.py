@@ -1108,10 +1108,10 @@ async def async_send_message(calldata):
 
     hass = HASSComponent.get_hass()
 
-    person_name = calldata.data["target"]
+    person_name_list = calldata.data["target"]
 
-    if not person_name:
-        _LOGGER.debug(f"No person name provided")
+    if not person_name_list:
+        _LOGGER.debug(f"No person provided")
         return
 
     message = calldata.data["message"]
@@ -1124,34 +1124,35 @@ async def async_send_message(calldata):
     data = calldata.data["data"]
 
     # Retrieve person entity and associated device_trackers
-    person_entity = f"person.{person_name.lower()}"
-    entity_reg = entity_registry.async_get(hass)
-    person_entry = entity_reg.async_get(person_entity)
+    for person_name in person_name_list:
+        person_entity = f"{person_name.lower()}"
+        entity_reg = entity_registry.async_get(hass)
+        person_entry = entity_reg.async_get(person_entity)
 
-    if person_entry is None:
-        _LOGGER.debug(f"Person entity {person_entity} not found.")
-        return
+        if person_entry is None:
+            _LOGGER.debug(f"Person entity {person_entity} not found.")
+            return
 
-    _LOGGER.debug(f"Person entry {person_entry} found.")
+        _LOGGER.debug(f"Person entry {person_entry} found.")
 
-    device_trackers = homeassistant.components.person.entities_in_person(
-        hass, person_entity
-    )
-
-    if not device_trackers:
-        _LOGGER.debug(f"No device trackers found for person {person_name}.")
-        return
-
-    _LOGGER.debug(f"Person device trackers {device_trackers} found.")
-
-    # wrong: notify.device_tracker.macbook_air_m1
-    # right: notify.mobile_app_macbook_air_m1
-
-    # Send notification to each device tracker
-    for device_tracker in device_trackers:
-        mobile_app_notify = device_tracker.replace("device_tracker.", "mobile_app_")
-        await hass.services.async_call(
-            "notify",
-            mobile_app_notify,
-            {"message": message, "title": title, "data": data},
+        device_trackers = homeassistant.components.person.entities_in_person(
+            hass, person_entity
         )
+
+        if not device_trackers:
+            _LOGGER.debug(f"No device trackers found for person {person_name}.")
+            return
+
+        _LOGGER.debug(f"Person device trackers {device_trackers} found.")
+
+        # wrong: notify.device_tracker.macbook_air_m1
+        # right: notify.mobile_app_macbook_air_m1
+
+        # Send notification to each device tracker
+        for device_tracker in device_trackers:
+            mobile_app_notify = device_tracker.replace("device_tracker.", "mobile_app_")
+            await hass.services.async_call(
+                "notify",
+                mobile_app_notify,
+                {"message": message, "title": title, "data": data},
+            )
