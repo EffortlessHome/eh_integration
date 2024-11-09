@@ -60,8 +60,8 @@ PANEL_FOLDER = "frontend"
 PANEL_FILENAME = "dist/alarm-panel.js"
 
 PANEL_URL = "/api/panel_custom/effortlesshome"
-PANEL_TITLE = "EH Security"
-PANEL_ICON = "mdi:shield-home"
+PANEL_TITLE = "EffortlessHome"
+PANEL_ICON = "mdi:e-box-outline"
 PANEL_NAME = "alarm-panel"
 
 INITIALIZATION_TIME = datetime.timedelta(seconds=60)

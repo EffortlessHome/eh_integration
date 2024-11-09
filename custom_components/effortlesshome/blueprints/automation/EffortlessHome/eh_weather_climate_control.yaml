@@ -26,7 +26,14 @@ blueprint:
           - domain:
             - sensor
           multiple: false
-
+    person_input:
+        name: Person
+        description: The person (or people) to notify
+        selector:
+            entity:
+                multiple: true
+                filter:
+                    domain: person
     additional_actions:
       name: Additional Actions
       description: Add additional actions to execute (Optional)
@@ -46,8 +53,9 @@ variables:
 
 action:
 
-- service: notify.notify
+- service: effortlesshome.notify_person_service
   data:
+    target: !input person_input
     title: Climate Control Suggestion
     message: >
       The forecasted temperature for tomorrow is expected to be {{

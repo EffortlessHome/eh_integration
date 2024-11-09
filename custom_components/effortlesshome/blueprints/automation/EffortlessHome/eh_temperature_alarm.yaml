@@ -36,6 +36,14 @@ blueprint:
           unit_of_measurement: degrees
           step: 1.0
           mode: slider
+    person_input:
+        name: Person
+        description: The person (or people) to notify
+        selector:
+            entity:
+                multiple: true
+                filter:
+                    domain: person
     notification_message:
       name: Notification message
       description: 'Temperature Sensor Activated Message'
@@ -64,8 +72,9 @@ variables:
   clickActionURL: !input data_clickaction_url
 
 action:
-- service: notify.notify
+- service: effortlesshome.notify_person_service
   data:
+    target: !input person_input
     title: Temperature Sensor Activated
     message: !input notification_message
     data:

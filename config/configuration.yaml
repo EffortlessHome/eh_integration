@@ -9,13 +9,16 @@ homeassistant:
 
 # https://www.home-assistant.io/integrations/logger/
 logger:
-  default: info
+  default: debug
   logs:
-    custom_components.integration_EffortlessHome: info
+    custom_components.integration_EffortlessHome: debug
 
 # Load frontend themes from the themes folder
 frontend:
   themes: !include_dir_merge_named themes
+
+  # Example absolute path: /home/paulus/dev/hass/frontend
+  development_repo: frontend
 
 automation: !include automations.yaml
 script: !include scripts.yaml

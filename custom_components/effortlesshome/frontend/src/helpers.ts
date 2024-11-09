@@ -116,7 +116,7 @@ export function handleError(err: any, ev: Event | HTMLElement) {
     <br />
     <br />
     Please
-    <a href="https://github.com/nielsfaber/effortlesshome/issues">report</a>
+    report
     the bug.
   `;
   showErrorDialog(ev, errorMessage);
@@ -159,11 +159,16 @@ export const filterState = (state: string, config: Record<EArmModes, effortlessh
   }
 };
 
-export function Assign<Type>(obj: Type, changes: Partial<Type>): Type {
-  Object.entries(changes).forEach(([key, val]) => {
-    if (key in obj && typeof obj[key] == 'object' && obj[key] !== null) obj = { ...obj, [key]: Assign(obj[key], val) };
-    else obj = { ...obj, [key]: val };
-  });
+
+
+export function Assign<Type extends object>(obj: Type, changes: Partial<Type>): Type {
+  for (const [key, val] of Object.entries(changes)) {
+    if (key in obj && typeof obj[key] == 'object' && obj[key] !== null) {
+      obj = { ...obj, [key]: Assign(obj[key], val) };
+    } else {
+      obj = { ...obj, [key]: val };
+    }
+  }
   return obj;
 }
 

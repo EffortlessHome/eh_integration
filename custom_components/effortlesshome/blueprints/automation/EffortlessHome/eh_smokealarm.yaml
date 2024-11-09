@@ -15,10 +15,23 @@ blueprint:
             - binary_sensor
             - group
           multiple: true
+    person_input:
+        name: Person
+        description: The person (or people) to notify
+        selector:
+            entity:
+                multiple: true
+                filter:
+                    domain: person
     notification_message:
       name: Notification message
       description: Smoke Detector Activated Message
       default: Smoke Alarm Activated. Check for fire immediately.
+    data_clickaction_url:
+      name: URL to Navigate (Optional)
+      description: The URL to navigate to when clicking on the notification. (default
+        = /lovelace)
+      default: /lovelace
     additional_actions:
       name: Additional Actions
       description: Add additional actions to execute (Optional)
@@ -30,8 +43,15 @@ trigger:
   entity_id: !input smokealarm
   to: 'on'
 action:
-- service: notify.notify
+- service: effortlesshome.notify_person_service
   data:
+    target: !input person_input
     message: !input notification_message
+    title: Smoke Alarm Activated
+    data:
+      clickAction: !input data_clickaction_url
+      ttl: 0
+      priority: high
+      url: !input data_clickaction_url
 - choose: []
   default: !input additional_actions

@@ -24,7 +24,14 @@ blueprint:
         entity:
           domain:
           - group
-
+    person_input:
+        name: Person
+        description: The person (or people) to notify
+        selector:
+            entity:
+                multiple: true
+                filter:
+                    domain: person
     additional_actions:
       name: Additional Actions
       description: Add additional actions to execute (Optional)
@@ -49,9 +56,11 @@ condition:
     state: 'unlocked'
 action:
 
-- service: notify.notify
-  metadata: {}
+- service: effortlesshome.notify_person_service
   data:
+    target: !input person_input
     message: Door or Window Left Open Or Unlocked When No One Home
+    data:
+      priority: high
 - choose: []
   default: !input additional_actions

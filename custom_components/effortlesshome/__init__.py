@@ -84,6 +84,10 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.helpers import entity_registry
 
+from homeassistant.components.notify import BaseNotificationService
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import DeviceRegistry
+
 from .auto_area import (
     AutoArea,
 )
@@ -157,9 +161,25 @@ async def async_setup(hass, config) -> bool:  # noqa: ANN001
         )
 
     # Reload themes in Home Assistant to apply any new themes
-    await hass.services.async_call("frontend", "reload_themes")
+    # await hass.services.async_call("frontend", "reload_themes")
 
-    area_manager = AreaManager(hass, ["Living Room", "Family Room", "Yard", "Basement", "Kitchen", "Bedroom", "Garage", "Attic", "Unknown"])
+    area_manager = AreaManager(
+        hass,
+        [
+            "Living Room",
+            "Family Room",
+            "Yard",
+            "Basement",
+            "Kitchen",
+            "Bedroom",
+            "Bedroom 2",
+            "Bedroom 3",
+            "Garage",
+            "Attic",
+            "Office",
+            "Unknown",
+        ],
+    )
     await area_manager.ensure_areas_exist()
 
     _LOGGER.info("Setting up effortlesshome binary sensors integration")
@@ -180,6 +200,7 @@ async def async_setup(hass, config) -> bool:  # noqa: ANN001
     await hass.helpers.discovery.async_load_platform("cover", const.DOMAIN, {}, config)
 
     # Load the group platform
+    _LOGGER.info("Setting up effortlesshome group integration")
     await hass.helpers.discovery.async_load_platform("group", const.DOMAIN, {}, config)
 
     AIHASSComponent.set_hass(hass)
@@ -196,6 +217,16 @@ async def async_setup(hass, config) -> bool:  # noqa: ANN001
 
     hass.services.async_register(
         DOMAIN, "createcleanmotionfilesservice", cleanmotionfiles
+    )
+
+    @callback
+    async def notify_person_service(call: ServiceCall) -> None:
+        await async_send_message(call)
+
+    hass.services.async_register(
+        DOMAIN,
+        "notify_person_service",
+        async_send_message,
     )
 
     async def after_home_assistant_started(event):
@@ -1069,3 +1100,58 @@ async def getPlanStatus(calldata):  # noqa: ANN001, ANN201, ARG001, N802
                 _LOGGER.debug("No Active Plans Found For This System")
 
             return content
+
+
+async def async_send_message(calldata):
+    """Send a notification message to a person’s device trackers."""
+    _LOGGER.debug("In async_send_message")
+
+    hass = HASSComponent.get_hass()
+
+    person_name = calldata.data["target"]
+
+    if not person_name:
+        _LOGGER.debug(f"No person name provided")
+        return
+
+    message = calldata.data["message"]
+
+    if not message:
+        _LOGGER.debug(f"No message provided")
+        return
+
+    title = calldata.data["title"]
+    data = calldata.data["data"]
+
+    # Retrieve person entity and associated device_trackers
+    person_entity = f"person.{person_name.lower()}"
+    entity_reg = entity_registry.async_get(hass)
+    person_entry = entity_reg.async_get(person_entity)
+
+    if person_entry is None:
+        _LOGGER.debug(f"Person entity {person_entity} not found.")
+        return
+
+    _LOGGER.debug(f"Person entry {person_entry} found.")
+
+    device_trackers = homeassistant.components.person.entities_in_person(
+        hass, person_entity
+    )
+
+    if not device_trackers:
+        _LOGGER.debug(f"No device trackers found for person {person_name}.")
+        return
+
+    _LOGGER.debug(f"Person device trackers {device_trackers} found.")
+
+    # wrong: notify.device_tracker.macbook_air_m1
+    # right: notify.mobile_app_macbook_air_m1
+
+    # Send notification to each device tracker
+    for device_tracker in device_trackers:
+        mobile_app_notify = device_tracker.replace("device_tracker.", "mobile_app_")
+        await hass.services.async_call(
+            "notify",
+            mobile_app_notify,
+            {"message": message, "title": title, "data": data},
+        )

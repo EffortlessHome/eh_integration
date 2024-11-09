@@ -28,6 +28,14 @@ blueprint:
           domain:
           - climate
           multiple: true
+    person_input:
+        name: Person
+        description: The person (or people) to notify
+        selector:
+            entity:
+                multiple: true
+                filter:
+                    domain: person
     window_open_delay:
       name: Delay After Window Opens
       description: Time to wait after the door or window opens before suspending climate
@@ -56,6 +64,11 @@ blueprint:
       name: Notification message
       description: 'Climate Control Disabled Message'
       default: 'Climate Control Temporarily Disabled Due to Open Window/Door'
+    data_clickaction_url:
+      name: URL to Navigate (Optional)
+      description: The URL to navigate to when clicking on the notification. (default
+        = /lovelace)
+      default: /lovelace
     additional_actions:
       name: Additional Actions
       description: Add additional actions to execute (Optional)
@@ -77,10 +90,16 @@ action:
       target:
         entity_id: !input target_climate
 
-    - service: notify.notify
+    - service: effortlesshome.notify_person_service
       data:
+        target: !input person_input
         title: Climate Control Disabled
         message: !input notification_message
+        data:
+          clickAction: !input data_clickaction_url
+          ttl: 0
+          priority: high
+          url: !input data_clickaction_url
 
 - choose: []
   default: !input additional_actions

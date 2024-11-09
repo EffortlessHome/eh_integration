@@ -12,7 +12,7 @@ blueprint:
       default: 00:00:00
       selector:
         time: {}
-  
+
     battery_level:
       name: Battery Low Warning Level
       description: Set the battery low warning percentage to identify all batteries
@@ -37,7 +37,14 @@ blueprint:
           entity:
           - device_class:
             - battery
-
+    person_input:
+        name: Person
+        description: The person (or people) to notify
+        selector:
+            entity:
+                multiple: true
+                filter:
+                    domain: person
     notification_title:
       name: Notification title
       description: 'Default: "Battery Check Notification"'
@@ -131,8 +138,9 @@ trigger:
 
 action:
 
-- service: notify.notify
+- service: effortlesshome.notify_person_service
   data:
+    target: !input person_input
     title: !input notification_title
     message: 'Battery and Sensor Check Result. Sensors: {{ sensors_names }} and Unavailable: {{ unavailable_sensors_names}}'
     data:

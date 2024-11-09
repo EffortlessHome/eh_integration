@@ -30,13 +30,13 @@
       }
     }
   },
-  "title": "Alarm panel",
+  "title": "EffortlessHome",
   "panels": {
     "general": {
       "title": "General",
       "cards": {
         "general": {
-          "description": "This panel defines some global settings for the alarm.",
+          "description": "This panel defines some global settings for EffortlessHome.",
           "fields": {
             "disarm_after_trigger": {
               "heading": "Disarm after trigger",
@@ -47,8 +47,8 @@
               "description": "Allow the alarm panel to be controlled through MQTT."
             },
             "enable_master": {
-              "heading": "Enable alarm master",
-              "description": "Creates an entity for controlling all areas simultaneously."
+              "heading": "Enable EH Test",
+              "description": "Creates a TEST Entity"
             }
           },
           "actions": {

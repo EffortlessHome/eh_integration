@@ -18,6 +18,17 @@ const plugins = [
   terser()
 ];
 
+terser({
+  ecma: 2015,  // Specify the ECMAScript version
+  compress: {
+    defaults: false,  // Custom compression settings (optional)
+  },
+  mangle: true,  // Enable mangling
+  output: {
+    beautify: false,
+  },
+})
+
 export default [
   {
     input: 'src/alarm-panel.ts',

@@ -23,7 +23,14 @@ blueprint:
           domain:
           - camera
           multiple: false
-
+    person_input:
+        name: Person
+        description: The person (or people) to notify
+        selector:
+            entity:
+                multiple: true
+                filter:
+                    domain: person
     google_ai_prompt:
       name: Prompt to use with Google AI
       description: 'Default: "Is there at least one vehicle shown in this image?"'
@@ -96,8 +103,9 @@ action:
   entity_id: binary_sensor.motion_notification_sensor
   state: 'on'
 
-- service: notify.notify
+- service: effortlesshome.notify_person_service
   data:
+    target: !input person_input
     title: !input notification_title
     message: '{{ notification_message}} {{content.text}}'
     data:

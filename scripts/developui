@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+cd frontend
+
+rm -r hass_frontend
+
+nvm install
+
+nvm use
+script/bootstrap
+script/setup_translations
+
+nvm use
+script/develop
+

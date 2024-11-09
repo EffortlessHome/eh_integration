@@ -1,39 +1,13 @@
-import * as ca from './languages/ca.json';
-import * as cs from './languages/cs.json';
-import * as da from './languages/da.json';
-import * as de from './languages/de.json';
+
 import * as en from './languages/en.json';
-import * as es from './languages/es.json';
-import * as et from './languages/et.json';
-import * as fr from './languages/fr.json';
-import * as it from './languages/it.json';
-import * as nl from './languages/nl.json';
-import * as sk from './languages/sk.json';
-import * as sv from './languages/sv.json';
-import * as vi from './languages/vi.json';
-import * as zh_Hans from './languages/zh-Hans.json';
-import * as zh_Hant from './languages/zh-Hant.json';
-import * as ru from './languages/ru.json';
+
 
 import IntlMessageFormat from 'intl-messageformat';
 
 var languages: any = {
-  ca: ca,
-  cs: cs,
-  da: da,
-  de: de,
+
   en: en,
-  et: et,
-  es: es,
-  fr: fr,
-  it: it,
-  nl: nl,
-  sk: sk,
-  sv: sv,
-  vi: vi,
-  'zh-Hans': zh_Hans,
-  'zh-Hant': zh_Hant,
-  ru: ru,
+
 };
 
 export function localize(string: string, language: string, ...args: any[]): string {
